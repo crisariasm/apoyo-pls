@@ -70,8 +70,7 @@ La aplicación está construida con:
 | `lib/input-security.ts` | Límites, origen, rate limiting y lectura segura de solicitudes |
 | `lib/image-processing.ts` | Rotación, redimensión y conversión de imágenes a WebP |
 | `lib/r2-storage.ts` | Firmado de operaciones GET, PUT y DELETE contra R2 |
-| `scripts/seed.ts` | Carga idempotente de datos y usuarios de prueba |
-| `scripts/seed-data.ts` | Casos de demostración del sistema |
+| `scripts/seed-with-migrations.ts` | Migraciones, UUID v4 únicos por ejecución y carga idempotente de datos y usuarios de prueba |
 | `payload.config.ts` | Configuración de Payload, PostgreSQL, UUID y colecciones |
 
 ## Puesta en marcha
@@ -376,6 +375,8 @@ Es una interfaz independiente del administrador original de Payload. Tiene:
 - Navbar lateral fijo y colapsable.
 - Estado activo del módulo seleccionado.
 - Scroll automático hasta el módulo activo.
+- Contador de solicitudes pendientes junto al módulo Solicitudes.
+- Aviso temporal cuando llega una nueva solicitud: rojo si es para necesitar ayuda y verde si es una oferta de ayuda.
 - Formularios de creación y edición.
 - Modal responsive para editar.
 - Paginación de registros.
@@ -388,7 +389,7 @@ Es una interfaz independiente del administrador original de Payload. Tiene:
 
 El dashboard presenta:
 
-- Registros propios bajo cuidado.
+- Registros creados por el usuario actual como indicador de trabajo propio.
 - Registros visibles o publicados.
 - Gráfica de registros por módulo.
 - Lectura rápida de visibilidad.
@@ -396,7 +397,7 @@ El dashboard presenta:
 - Solicitudes compartidas para todo el equipo.
 - Conteos calculados con los registros realmente devueltos por Payload.
 
-El rol de administración puede consultar todos los módulos. Los demás roles ven sus registros propios, excepto Solicitudes y Evidencias, que son módulos compartidos.
+El rol de administración puede consultar todos los módulos. Cada rol operativo puede consultar todos los registros de los módulos que tiene asignados, además de Solicitudes y Evidencias. El indicador de trabajo propio conserva el filtro por `registeredByUserId`, mientras que las tarjetas de módulos muestran el total compartido para ayudar a detectar duplicados.
 
 ### Módulos operativos
 
@@ -424,6 +425,8 @@ El rol de administración puede consultar todos los módulos. Los demás roles v
 - Las evidencias exigen distribución cuando el origen es “Salida de distribución”.
 - Las evidencias exigen una referencia cuando el origen es “Otro registro operativo”.
 - En edición de imágenes no se reemplaza directamente el archivo: primero se elimina el anterior y luego se carga uno nuevo.
+- Los registros de cada módulo son visibles para todo el equipo autorizado en ese módulo. Así pueden revisar lo que ya existe antes de crear otro registro.
+- Cada registro conserva `Registrado por` como su creador original. Si otra persona lo modifica, `Actualizado por` muestra al último responsable sin reemplazar al creador.
 - Las listas usan paginación y/o scroll interno para no crecer indefinidamente.
 - Todas las respuestas de validación del portal se muestran en español.
 
@@ -437,6 +440,7 @@ Todos los roles operativos pueden:
 - Abrir el detalle completo.
 - Ver si es **Necesitar ayuda** u **Ofrecer ayuda**.
 - Ver el tipo específico: recursos, oferta, transporte o voluntariado.
+- Ver hace cuánto fue reportada, por ejemplo `Hace 12 horas` o `Hace 1 día y 12 horas`, junto con la fecha exacta.
 - Cambiar estado.
 - Agregar notas internas.
 - Guardar cambios.
@@ -482,14 +486,15 @@ El panel permite administrar directamente las colecciones y el global de configu
 |---|---|---|
 | `que-tenemos` | Qué tenemos | Solicitudes y Evidencias |
 | `que-necesitamos` | Qué necesitamos | Solicitudes y Evidencias |
-| `anuncios-boletin` | Anuncios y Boletín | Solicitudes y Evidencias |
+| `anuncios` | Anuncios del centro | Solicitudes y Evidencias |
+| `boletin` | Boletín informativo | Solicitudes y Evidencias |
 | `servicios` | Servicios | Solicitudes y Evidencias |
 | `inventario` | Inventario | Solicitudes y Evidencias |
 | `distribucion` | Distribución | Solicitudes y Evidencias |
 | `comunicados` | Comunicados | Solicitudes y Evidencias |
 | `administracion` | Todos los módulos | Acceso completo del portal |
 
-La API del portal vuelve a validar sesión, rol, módulo y pertenencia del registro en cada operación. No se confía únicamente en ocultar enlaces del frontend.
+La API del portal vuelve a validar sesión, rol y módulo en cada operación. La visibilidad compartida no elimina la auditoría: la creación conserva el usuario original y cada edición actualiza el responsable de modificación. No se confía únicamente en ocultar enlaces del frontend.
 
 ## Colecciones y datos
 
@@ -623,6 +628,7 @@ Todos requieren sesión operativa y validación de rol.
 | POST | `/api/equipo/login` | Inicia sesión operativa |
 | POST | `/api/equipo/logout` | Cierra sesión operativa |
 | GET | `/api/equipo/:module` | Lista registros paginados del módulo |
+| GET | `/api/equipo/administracion?summary=pending` | Devuelve únicamente el total y tipo de la solicitud pendiente más reciente para el contador y las alertas |
 | POST | `/api/equipo/:module` | Crea un registro si el módulo lo permite |
 | PATCH | `/api/equipo/:module` | Actualiza un registro mediante su UUID |
 | DELETE | `/api/equipo/:module` | Elimina un registro mediante su UUID |
@@ -676,10 +682,8 @@ No se necesita una URL pública del bucket. El backend descarga los objetos de R
 
 ## Seeder de demostración
 
-El seeder se encuentra en:
-
-- [scripts/seed.ts](./scripts/seed.ts)
-- [scripts/seed-data.ts](./scripts/seed-data.ts)
+El seeder completo se encuentra en [scripts/seed-with-migrations.ts](./scripts/seed-with-migrations.ts).
+Es el único archivo de seed que debe ejecutarse directamente.
 
 Carga o actualiza datos de demostración realistas para que la aplicación no aparezca vacía:
 
@@ -702,14 +706,24 @@ El seeder es idempotente:
 - Busca registros por campos de referencia.
 - Actualiza los existentes.
 - Evita duplicar registros al ejecutarse nuevamente.
-- Corrige registros antiguos cuyo auditor aparezca como `Seeder inicial PLs al llamado`.
-- Usa el actor de demostración `Administrador de prueba`.
+- Corrige registros antiguos cuyo auditor aparezca como `Seeder inicial PLs al llamado` o `Administrador de prueba`.
+- Usa el actor de demostración `Carga inicial del sistema`, sin atribuir la carga a un administrador real.
+- Genera UUID v4 aleatorios y únicos durante cada ejecución para los registros iniciales, relaciones, medios y usuarios.
+- Comprueba los UUID con un conjunto en memoria para que no se repitan dentro de la misma carga.
+- Guarda esos UUID al crear documentos gracias a `allowIDOnCreate` y conserva los UUID existentes al actualizar.
 
 Ejecutar:
 
 ```bash
 pnpm payload:seed
 ```
+
+`payload:seed` comprueba si la base ya tiene el registro de migraciones. Cuando
+existe un esquema anterior, ejecuta primero `pnpm payload:migrate` para preparar
+el enum de roles y convertir `anuncios-boletin` antes de que Payload sincronice
+el esquema en desarrollo. En una base completamente nueva omite ese paso porque
+todavía no existen tablas que migrar y deja que el `push` de desarrollo cree el
+esquema inicial.
 
 ### Usuarios de prueba
 
@@ -729,7 +743,8 @@ Todos los siguientes usuarios usan `PLsEquipo2026!` salvo que cambies `SEED_PORT
 | Administración | `administracion@plsalllamado.local` |
 | Qué tenemos | `que-tenemos@plsalllamado.local` |
 | Qué necesitamos | `que-necesitamos@plsalllamado.local` |
-| Anuncios y boletín | `anuncios@plsallamado.local` |
+| Anuncios | `anuncios@plsallamado.local` |
+| Boletín | `boletin@plsallamado.local` |
 | Servicios | `servicios@plsallamado.local` |
 | Inventario | `inventario@plsalllamado.local` |
 | Distribución | `distribucion@plsallamado.local` |
@@ -755,45 +770,31 @@ pnpm payload:generate
 
 ### Crear y aplicar migraciones
 
-En producción:
+Para aplicar las migraciones pendientes:
+
+```bash
+pnpm payload:migrate
+```
+
+Para crear una migración de cambios posteriores:
 
 ```bash
 pnpm payload:migrate:create
-pnpm payload:migrate
 ```
 
-En desarrollo, el esquema se sincroniza con `push` al iniciar, por lo que no se debe mezclar ese flujo con migraciones productivas sin revisar la base.
+En desarrollo, Payload puede sincronizar cambios de esquema con `push`, pero las
+migraciones versionadas siempre se ejecutan antes del seeder. En producción se
+debe ejecutar `pnpm payload:migrate` como parte del despliegue antes de iniciar
+la aplicación.
 
-### Migrar una base existente a UUID
+### UUID y limpieza de desarrollo
 
-Este proceso conserva registros, pero modifica tipos y relaciones. Primero crea un respaldo:
+El proyecto ya usa UUID desde la configuración de Payload y el seeder genera
+los IDs iniciales automáticamente. No se necesita un script manual para
+convertir IDs ni un script de reinicio dentro del proyecto.
 
-```bash
-UUID_MIGRATION_CONFIRM=YES pnpm payload:ids:uuid
-pnpm payload:generate
-pnpm payload:migrate
-```
-
-El script:
-
-- Convierte IDs principales a UUID.
-- Actualiza claves foráneas.
-- Actualiza relaciones de Payload.
-- Regenera IDs de sesiones y evidencias anidadas.
-- Revisa relaciones huérfanas.
-- Revierte la transacción si encuentra una inconsistencia.
-
-### Reiniciar la base local
-
-Esta acción elimina todas las tablas y datos de PostgreSQL. No elimina objetos de R2:
-
-```bash
-RESET_DATABASE_CONFIRM=YES pnpm payload:reset
-pnpm payload:generate
-pnpm payload:seed
-```
-
-Usarlo únicamente en desarrollo y después de revisar `DATABASE_URL`.
+Si necesitas vaciar una base local, hazlo con el flujo de PostgreSQL o Docker
+que utilices en tu entorno de desarrollo y luego ejecuta `pnpm payload:seed`.
 
 ## Seguridad y privacidad
 
@@ -860,8 +861,6 @@ pnpm payload:generate         # Genera payload-types.ts
 pnpm payload:migrate:create   # Crea una migración
 pnpm payload:migrate          # Ejecuta migraciones
 pnpm payload:seed             # Carga datos y usuarios de prueba
-pnpm payload:ids:uuid         # Migra una base existente a UUID
-pnpm payload:reset            # Elimina la base con confirmación explícita
 ```
 
 El proyecto contiene:
@@ -931,6 +930,18 @@ Después valida `DATABASE_URL` y vuelve a ejecutar:
 pnpm payload:seed
 ```
 
+### Error `invalid input value for enum enum_users_role`
+
+La base conserva el rol combinado de una versión anterior. La corrección está
+versionada en `migrations/` y se aplica automáticamente cuando ejecutas:
+
+```bash
+pnpm payload:seed
+```
+
+Si quieres separar los pasos, usa primero `pnpm payload:migrate` y después
+`pnpm payload:seed`.
+
 ### El portal no permite subir imágenes
 
 Comprueba:
@@ -982,4 +993,3 @@ La compilación debe reconocer:
 - El servidor de medios.
 
 Última actualización documental: agosto de 2026.
-

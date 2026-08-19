@@ -57,6 +57,7 @@ export default buildConfig({
   secret: payloadSecret || 'pls-al-llamado-local-secret-change-me',
   typescript: { outputFile: './payload-types.ts' },
   db: postgresAdapter({
+    allowIDOnCreate: true,
     idType: 'uuid',
     pool: {
       connectionString: process.env.DATABASE_URL || '',

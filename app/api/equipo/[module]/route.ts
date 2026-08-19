@@ -37,6 +37,22 @@ export async function GET(request: Request, context: RouteContext) {
   const authorized = await getAuthorizedModule(context)
   if (!authorized) return NextResponse.json({ message: 'No tienes acceso a este módulo.' }, { status: 403 })
   const url = new URL(request.url)
+  if (authorized.module.slug === 'administracion' && url.searchParams.get('summary') === 'pending') {
+    try {
+      const result = await authorized.payload.find({ collection: authorized.module.collection, where: { status: { equals: 'pendiente' } }, limit: 1, page: 1, sort: '-createdAt', overrideAccess: true, user: authorized.user })
+      const latest = result.docs[0] as unknown as Record<string, unknown> | undefined
+      const requestType = typeof latest?.requestType === 'string' ? latest.requestType : ''
+      const inferredHelpType = typeof latest?.helpType === 'string'
+        ? latest.helpType
+        : ['oferta', 'transporte', 'voluntariado'].includes(requestType) ? 'ofrecer-ayuda' : 'necesitar-ayuda'
+      return NextResponse.json({
+        pending: result.totalDocs,
+        latest: latest ? { id: latest.id, helpType: inferredHelpType, createdAt: latest.createdAt } : null,
+      })
+    } catch {
+      return NextResponse.json({ message: 'No fue posible consultar las solicitudes pendientes.' }, { status: 500 })
+    }
+  }
   const page = Math.max(Number.parseInt(url.searchParams.get('page') || '1', 10) || 1, 1)
   const requestedLimit = Number.parseInt(url.searchParams.get('limit') || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE
   const limit = Math.min(Math.max(requestedLimit, 1), MAX_PAGE_SIZE)

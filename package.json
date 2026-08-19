@@ -15,9 +15,7 @@
     "payload:generate": "payload generate:types",
     "payload:migrate": "payload migrate",
     "payload:migrate:create": "payload migrate:create",
-    "payload:ids:uuid": "node --env-file=.env --import tsx/esm scripts/migrate-ids-to-uuid.ts",
-    "payload:reset": "node --env-file=.env --import tsx/esm scripts/reset-database.ts",
-    "payload:seed": "node --env-file=.env --import tsx/esm scripts/seed.ts"
+    "payload:seed": "node --env-file=.env --import tsx/esm scripts/seed-with-migrations.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "^3.86.0",

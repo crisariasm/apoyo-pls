@@ -40,15 +40,25 @@ export function isPortalAdministrator(user: PortalUser) {
 }
 
 export function getPortalOwnershipWhere(user: PortalUser, moduleSlug?: string) {
-  const canManageAllEvidence = moduleSlug === 'evidencias'
-  const canViewAllRequests = moduleSlug === 'administracion'
-  return isPortalAdministrator(user) || canManageAllEvidence || canViewAllRequests ? undefined : { registeredByUserId: { equals: user.id } }
+  // La pertenencia al módulo ya se valida antes de llamar esta función.
+  // Los registros operativos son compartidos entre las personas autorizadas
+  // para el módulo, para que puedan detectar duplicados y continuar el
+  // trabajo de otro integrante. registeredByUserId se conserva únicamente
+  // como trazabilidad del creador y para los indicadores propios del panel.
+  void user
+  void moduleSlug
+  return undefined
 }
 
 export function ownsPortalRecord(user: PortalUser, record: unknown, moduleSlug?: string) {
-  if (isPortalAdministrator(user) || moduleSlug === 'evidencias' || moduleSlug === 'administracion') return true
-  if (!record || typeof record !== 'object') return false
-  return (record as { registeredByUserId?: unknown }).registeredByUserId === user.id
+  // La autorización de rol y módulo ya ocurrió en getAuthorizedModule().
+  // Una vez dentro del módulo, el equipo puede mantener registros
+  // compartidos. El creador original no se reemplaza: solo se actualiza
+  // updatedBy/updatedByUserId cuando otra persona hace un cambio.
+  void user
+  void record
+  void moduleSlug
+  return true
 }
 
 export function getDashboardRoleLabel(role: DashboardRole) {

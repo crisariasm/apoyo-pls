@@ -1,6 +1,6 @@
 import { ValidationError, type CollectionBeforeChangeHook, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
-const seedActor = 'Seeder inicial PLs al llamado'
+const seedActor = 'Carga inicial del sistema'
 const maxLengths: Record<string, number> = {
   title: 160,
   name: 160,
@@ -72,7 +72,8 @@ const stampAuditFields: CollectionBeforeChangeHook = ({ data, req, operation, co
   if (!data) return data
 
   const user = req.user as { id?: string; name?: string; email?: string } | undefined
-  const actor = user?.name?.trim() || user?.email?.trim() || (typeof data.registeredBy === 'string' && data.registeredBy.trim() ? data.registeredBy.trim() : collection.slug === 'support-requests' ? 'Formulario público' : seedActor)
+  const suppliedCreateActor = operation === 'create' && typeof data.registeredBy === 'string' && data.registeredBy.trim() ? data.registeredBy.trim() : ''
+  const actor = user?.name?.trim() || user?.email?.trim() || suppliedCreateActor || (collection.slug === 'support-requests' ? 'Formulario público' : seedActor)
   const actorId = typeof user?.id === 'string' ? user.id : ''
   const nextData = { ...data } as Record<string, unknown>
 

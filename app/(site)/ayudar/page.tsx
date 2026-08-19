@@ -5,9 +5,12 @@ import { PageIntro } from '../../components/page-intro'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
 import { getOverview } from '../../../lib/public-api'
+import { pageMetadata } from '../../../lib/site-metadata'
+
+export const metadata = pageMetadata('Quiero ayudar', 'Envía una oferta de recursos, transporte, voluntariado o conocimientos al equipo del centro.', '/ayudar')
 
 export default async function HelpPage() {
-  const data = await getOverview()
+  const data = await getOverview({ sections: ['activities'] })
   const activities = data.activities
 
   return (

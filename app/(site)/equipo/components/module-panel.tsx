@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import type { PortalField, PortalModule } from '../../../../lib/staff-portal-config'
 import { getPortalFieldMaxLength, normalizePortalData, validatePortalData } from '../../../../lib/staff-portal-validation'
 import { MediaField, type MediaValue } from './media-field'
+import { useStaffModuleRefresh } from './staff-live-refresh'
 
 type RecordData = Record<string, unknown>
 type ApiResult = { docs?: RecordData[]; doc?: RecordData; page?: number; totalPages?: number; totalDocs?: number; message?: string }
@@ -153,6 +154,18 @@ export function StaffModulePanel({
   }, [editingId, form, module.fields, originalForm, removedMediaIds.length])
   const canSubmit = formComplete && (!editingId || formChanged)
 
+  useStaffModuleRefresh({
+    url: `/api/equipo/${module.slug}?page=${currentPage}&limit=8`,
+    enabled: !editingId && !saving,
+    onData: (result) => {
+      if (!result.docs) return
+      setRecords(result.docs)
+      setCurrentPage(result.page || currentPage)
+      setTotalPages(Math.max(result.totalPages || 1, 1))
+      setTotalDocs(result.totalDocs || 0)
+    },
+  })
+
   const editingRecord = useMemo(() => editingId ? records.find((record) => String(record.id) === String(editingId)) : null, [editingId, records])
 
   useEffect(() => {
@@ -237,22 +250,6 @@ export function StaffModulePanel({
       setPageLoading(false)
     }
   }, [module.slug])
-
-  useEffect(() => {
-    if (editingId || saving) return
-    let cancelled = false
-    const refreshRecords = async () => {
-      if (cancelled || document.visibilityState !== 'visible') return
-      await loadPage(currentPage)
-    }
-    const interval = window.setInterval(refreshRecords, 5000)
-    window.addEventListener('focus', refreshRecords)
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-      window.removeEventListener('focus', refreshRecords)
-    }
-  }, [currentPage, editingId, loadPage, saving])
 
   async function uploadMedia(file: File, alt: string, createdIds: string[], context: string) {
     const body = new FormData()

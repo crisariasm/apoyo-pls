@@ -37,6 +37,7 @@ export const Services: CollectionConfig = {
     { name: 'price', type: 'text', label: 'Costo o condición' },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -47,7 +48,7 @@ export const Services: CollectionConfig = {
         { label: 'Archivado', value: 'archivado' },
       ],
     },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true },
-    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación' },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true, index: true },
+    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación', index: true },
   ],
 }

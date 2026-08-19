@@ -55,6 +55,7 @@ export const DistributionEvidence: CollectionConfig = {
     },
     {
       name: 'distribution',
+      index: true,
       type: 'relationship',
       relationTo: 'distributions',
       label: 'Salida de distribución',
@@ -71,6 +72,7 @@ export const DistributionEvidence: CollectionConfig = {
     { name: 'description', type: 'textarea', label: 'Descripción', required: true, maxLength: 2000 },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -81,7 +83,7 @@ export const DistributionEvidence: CollectionConfig = {
         { label: 'Archivado', value: 'archivado' },
       ],
     },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true },
-    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación', defaultValue: () => new Date().toISOString() },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true, index: true },
+    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación', index: true, defaultValue: () => new Date().toISOString() },
   ],
 }

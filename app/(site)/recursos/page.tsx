@@ -5,11 +5,13 @@ import { ResourceBrowser } from '../../components/resource-browser'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
 import { getOverview } from '../../../lib/public-api'
+import { pageMetadata } from '../../../lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
+export const metadata = pageMetadata('Qué tenemos hoy', 'Consulta los recursos disponibles y las ayudas recibidas en el centro de acopio.', '/recursos')
 
 export default async function ResourcesPage() {
-  const data = await getOverview()
+  const data = await getOverview({ sections: ['resources', 'aidIntakes'] })
   const resources = data.resources
   const aidIntakes = data.aidIntakes
   const center = data.center

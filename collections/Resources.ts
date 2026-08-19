@@ -25,6 +25,7 @@ export const Resources: CollectionConfig = {
     { name: 'unit', type: 'text', label: 'Presentación / medida', required: true, admin: { placeholder: 'Ej.: cajas, kits, litros o unidades', description: 'Indica qué representa la cantidad disponible.' } },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -35,8 +36,8 @@ export const Resources: CollectionConfig = {
         { label: 'Agotado', value: 'agotado' },
       ],
     },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible en la página pública', defaultValue: true },
-    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, admin: { description: 'Lo fija como un recurso prioritario en la vista pública.' } },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible en la página pública', defaultValue: true, index: true },
+    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, index: true, admin: { description: 'Lo fija como un recurso prioritario en la vista pública.' } },
     { name: 'notes', type: 'textarea', label: 'Notas operativas' },
   ],
 }

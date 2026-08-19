@@ -3,11 +3,13 @@ import { NeedOfferModal } from '../../components/need-offer-modal'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
 import { getOverview } from '../../../lib/public-api'
+import { pageMetadata } from '../../../lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
+export const metadata = pageMetadata('Qué necesitamos', 'Revisa las necesidades abiertas del centro antes de llevar una ayuda.', '/necesidades')
 
 export default async function NeedsPage() {
-  const data = await getOverview()
+  const data = await getOverview({ sections: ['needs'] })
   const needs = data.needs
 
   return (

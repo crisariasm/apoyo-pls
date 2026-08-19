@@ -69,7 +69,7 @@ export const SupportRequests: CollectionConfig = {
     { name: 'description', type: 'textarea', label: 'Detalle', required: true, maxLength: 5000 },
     { name: 'contactName', type: 'text', label: 'Nombre de contacto', required: true, maxLength: 160 },
     { name: 'phone', type: 'text', label: 'Teléfono', required: true, maxLength: 20, admin: { description: 'Número para coordinar la ayuda. No se publica.' } },
-    { name: 'status', type: 'select', label: 'Estado', required: true, defaultValue: 'pendiente', options: [
+    { name: 'status', type: 'select', label: 'Estado', required: true, index: true, defaultValue: 'pendiente', options: [
       { label: 'Pendiente', value: 'pendiente' },
       { label: 'En revisión', value: 'en-revision' },
       { label: 'Asignada', value: 'asignada' },

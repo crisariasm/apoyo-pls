@@ -8,6 +8,6 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const rateLimitResponse = publicReadGuard(request)
   if (rateLimitResponse) return rateLimitResponse
-  const overview = await getOverview()
+  const overview = await getOverview({ sections: ['aidIntakes'] })
   return NextResponse.json({ docs: overview.aidIntakes, mode: overview.mode }, { headers: { 'Cache-Control': 'no-store' } })
 }

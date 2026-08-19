@@ -37,9 +37,10 @@ export const AidIntakes: CollectionConfig = {
       ],
     },
     { name: 'sourceReference', type: 'text', label: 'Referencia del origen', admin: { description: 'Nombre de la organización o referencia interna. No publicar datos personales.' } },
-    { name: 'receivedAt', type: 'date', label: 'Fecha de recepción', required: true, defaultValue: () => new Date().toISOString() },
+    { name: 'receivedAt', type: 'date', label: 'Fecha de recepción', required: true, index: true, defaultValue: () => new Date().toISOString() },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado de clasificación',
       required: true,
@@ -51,8 +52,8 @@ export const AidIntakes: CollectionConfig = {
         { label: 'No apta', value: 'no-apta' },
       ],
     },
-    { name: 'publicVisible', type: 'checkbox', label: 'Mostrar como ayuda recibida', defaultValue: true },
-    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, admin: { description: 'Lo fija como una de las ayudas prioritarias en la vista pública.' } },
+    { name: 'publicVisible', type: 'checkbox', label: 'Mostrar como ayuda recibida', defaultValue: true, index: true },
+    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, index: true, admin: { description: 'Lo fija como una de las ayudas prioritarias en la vista pública.' } },
     { name: 'notes', type: 'textarea', label: 'Observaciones' },
   ],
 }

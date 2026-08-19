@@ -35,6 +35,7 @@ export const Announcements: CollectionConfig = {
     },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -45,9 +46,9 @@ export const Announcements: CollectionConfig = {
         { label: 'Archivado', value: 'archivado' },
       ],
     },
-    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true },
-    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación' },
+    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, index: true },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true, index: true },
+    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación', index: true },
     { name: 'expiresAt', type: 'date', label: 'Válido hasta' },
   ],
 }

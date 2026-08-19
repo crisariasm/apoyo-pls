@@ -56,6 +56,7 @@ export const CommunityNotices: CollectionConfig = {
     { name: 'contact', type: 'text', label: 'Canal o responsable', required: true },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -66,8 +67,8 @@ export const CommunityNotices: CollectionConfig = {
         { label: 'Archivado', value: 'archivado' },
       ],
     },
-    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true },
-    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación' },
+    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, index: true },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true, index: true },
+    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación', index: true },
   ],
 }

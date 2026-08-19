@@ -4,8 +4,10 @@ import { SiteFooter } from '../components/site-footer'
 import { SiteHeader } from '../components/site-header'
 import { NeedOfferModal } from '../components/need-offer-modal'
 import { getOverview } from '../../lib/public-api'
+import { pageMetadata } from '../../lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
+export const metadata = pageMetadata('Centro de acopio en Pereira', 'Consulta qué tiene el centro, qué necesita y hacia dónde llega la ayuda comunitaria.', '/')
 
 export default async function Home() {
   const data = await getOverview()

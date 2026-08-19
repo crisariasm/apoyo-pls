@@ -3,11 +3,13 @@ import { ServiceBrowser } from '../../components/service-browser'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
 import { getOverview } from '../../../lib/public-api'
+import { pageMetadata } from '../../../lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
+export const metadata = pageMetadata('Servicios comunitarios', 'Explora servicios gratuitos, ofrecidos por la comunidad y apoyos que todavía se necesitan.', '/servicios')
 
 export default async function ServicesPage() {
-  const data = await getOverview()
+  const data = await getOverview({ sections: ['services'] })
   const services = data.services
 
   return (

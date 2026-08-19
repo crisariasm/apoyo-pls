@@ -25,6 +25,15 @@ if (process.env.NODE_ENV === 'production' && payloadSecret.length < 32) {
   throw new Error('PAYLOAD_SECRET debe existir y tener al menos 32 caracteres en producción.')
 }
 
+const positiveInteger = (value: string | undefined, fallback: number) => {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
+const pgPoolMax = positiveInteger(process.env.PG_POOL_MAX, 10)
+const pgConnectionTimeout = positiveInteger(process.env.PG_CONNECTION_TIMEOUT_MS, 5000)
+const pgIdleTimeout = positiveInteger(process.env.PG_IDLE_TIMEOUT_MS, 30000)
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -61,6 +70,11 @@ export default buildConfig({
     idType: 'uuid',
     pool: {
       connectionString: process.env.DATABASE_URL || '',
+      max: pgPoolMax,
+      connectionTimeoutMillis: pgConnectionTimeout,
+      idleTimeoutMillis: pgIdleTimeout,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     },
     push: process.env.NODE_ENV !== 'production',
   }),

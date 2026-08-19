@@ -152,6 +152,9 @@ El archivo [.env.example](./.env.example) contiene la plantilla completa.
 | `DATABASE_URL` | Sí | Conexión a PostgreSQL |
 | `PAYLOAD_SECRET` | Sí en producción | Firma de sesiones y secretos internos |
 | `NEXT_PUBLIC_SERVER_URL` | Sí | URL permitida para CORS, CSRF y enlaces públicos |
+| `PG_POOL_MAX` | No | Máximo de conexiones simultáneas; por defecto `10` |
+| `PG_CONNECTION_TIMEOUT_MS` | No | Tiempo máximo para abrir una conexión; por defecto `5000` ms |
+| `PG_IDLE_TIMEOUT_MS` | No | Tiempo para cerrar conexiones inactivas; por defecto `30000` ms |
 
 En producción, `PAYLOAD_SECRET` debe tener al menos 32 caracteres.
 
@@ -597,14 +600,25 @@ Los nombres de familias, menores, documentos, teléfonos sensibles y ubicaciones
 
 La aplicación no depende de una recarga manual para reflejar cambios:
 
-- Las páginas públicas usan `noStore` y refresco del router cada 5 segundos.
-- El dashboard del equipo se actualiza automáticamente cada 5 segundos.
+- Las páginas públicas usan `noStore` y refresco del router cada 15 segundos, además de actualizar al recuperar el foco.
+- El portal del equipo consulta alertas y módulos cada 5 segundos; los indicadores completos del dashboard se recalculan cada 15 segundos para equilibrar respuesta operativa y carga de PostgreSQL.
 - Los módulos operativos consultan su endpoint cada 5 segundos.
 - Solicitudes y listas se actualizan al recuperar el foco de la ventana.
 - Las acciones de crear, editar y eliminar actualizan la lista local inmediatamente.
 - Los endpoints públicos envían `Cache-Control: no-store`.
 
-La implementación actual utiliza polling controlado, no WebSockets. Es una actualización automática de pocos segundos sin añadir Redis, SSE ni infraestructura adicional.
+La implementación actual utiliza polling controlado, no WebSockets. En el portal de equipo existe un solo refrescador compartido que deduplica el resumen de solicitudes y las consultas de los módulos activos; la sesión se renueva por separado cada 45 minutos. En el sitio público cada página consulta únicamente las colecciones que necesita, evitando cargar todo el contenido del sistema en cada actualización.
+
+### Rendimiento y consultas
+
+- Las lecturas públicas usan `depth: 0` cuando no necesitan relaciones y `depth: 1` solo para distribuciones, evidencias y comunicados con imágenes.
+- Los listados públicos conservan un límite de seguridad de 100 registros; la interfaz los muestra dentro de contenedores desplazables para evitar páginas interminables.
+- El dashboard usa consultas acotadas (`limit: 1`) y `totalDocs` para contar, en vez de cargar todos los documentos y filtrarlos en JavaScript.
+- Las consultas de publicación y estado tienen índices versionados en `migrations/20260819_140000_add_runtime_indexes.ts`.
+- Las operaciones independientes del servidor se ejecutan en paralelo con `Promise.all`; las dependientes, como sesión → autorización y distribución → evidencia, conservan el orden para no abrir una condición de carrera.
+- En producción `push` de Payload está desactivado: ejecuta `pnpm payload:migrate` antes de desplegar una nueva versión.
+
+La migración de índices necesita acceso a PostgreSQL. Si la base está detenida, inicia primero `docker compose up -d` y vuelve a ejecutar `pnpm payload:migrate`.
 
 ## API
 

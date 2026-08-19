@@ -2,24 +2,56 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { PortalShell } from './components/portal-shell'
-import { LiveRefresh } from '../../components/live-refresh'
 import { getModulesForRole } from '../../../lib/staff-portal-config'
 import { dashboardRoleLabels } from '../../../lib/staff-portal-config'
 import { requireStaffSession } from '../../../lib/staff-portal-auth'
 
 export const dynamic = 'force-dynamic'
 
+type QueryWhere = Record<string, unknown> | undefined
+
+function andWhere(...conditions: QueryWhere[]): QueryWhere {
+  const activeConditions = conditions.filter(Boolean) as Record<string, unknown>[]
+  if (!activeConditions.length) return undefined
+  if (activeConditions.length === 1) return activeConditions[0]
+  return { and: activeConditions }
+}
+
+function dashboardVisibilityConditions(collection: string): Record<string, unknown>[] {
+  if (collection === 'support-requests') return [{ status: { not_equals: 'cerrada' } }]
+  if (collection === 'needs') return [{ publicVisible: { equals: true } }, { status: { not_equals: 'cerrada' } }]
+  if (['announcements', 'bulletins', 'community-notices', 'services', 'distribution-evidence'].includes(collection)) {
+    return [{ publicVisible: { equals: true } }, { status: { not_equals: 'archivado' } }]
+  }
+  return [{ publicVisible: { equals: true } }]
+}
+
 export default async function StaffDashboard() {
   const session = await requireStaffSession()
   const modules = getModulesForRole(session.user.role)
   const snapshots = await Promise.all(modules.map(async (module) => {
-    const result = await session.payload.find({ collection: module.collection, pagination: false, sort: '-updatedAt', overrideAccess: true, user: session.user })
-    const allRecords = result.docs as unknown as Array<Record<string, unknown>>
-    const records = session.user.role === 'administracion'
-      ? allRecords
-      : allRecords.filter((record) => record.registeredByUserId === session.user.id)
-    const visible = records.filter((record) => record.publicVisible !== false && record.status !== 'archivado' && record.status !== 'cerrada').length
-    return { slug: module.slug, total: records.length, visible, sharedTotal: allRecords.length }
+    const count = async (where: QueryWhere) => {
+      const result = await session.payload.find({
+        collection: module.collection,
+        depth: 0,
+        limit: 1,
+        page: 1,
+        where: where as never,
+        overrideAccess: true,
+        user: session.user,
+      })
+      return result.totalDocs
+    }
+
+    const ownWhere = session.user.role === 'administracion'
+      ? undefined
+      : { registeredByUserId: { equals: session.user.id } }
+    const publicConditions = dashboardVisibilityConditions(module.collection)
+    const sharedTotalPromise = count(undefined)
+    const ownTotalPromise = session.user.role === 'administracion' ? sharedTotalPromise : count(ownWhere)
+    const visiblePromise = count(andWhere(ownWhere, ...publicConditions))
+    const [sharedTotal, total, visible] = await Promise.all([sharedTotalPromise, ownTotalPromise, visiblePromise])
+    return { slug: module.slug, total, visible, sharedTotal }
   }))
   const dashboardSnapshots = session.user.role === 'administracion' ? snapshots : snapshots.filter((item) => item.slug !== 'administracion')
   const totals = dashboardSnapshots.reduce((summary, item) => ({ total: summary.total + item.total, visible: summary.visible + item.visible }), { total: 0, visible: 0 })
@@ -29,8 +61,7 @@ export default async function StaffDashboard() {
   const unpublished = Math.max(totals.total - totals.visible, 0)
 
   return (
-    <PortalShell name={session.user.name} role={session.user.role} modules={modules}>
-      <LiveRefresh includeDashboard />
+    <PortalShell name={session.user.name} userId={session.user.id} role={session.user.role} modules={modules} refreshDashboard>
       <section className="staff-welcome">
         <div>
           <p className="staff-eyebrow">Espacio de trabajo del equipo</p>

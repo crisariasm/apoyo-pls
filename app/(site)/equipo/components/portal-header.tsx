@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 
 import type { DashboardRole, PortalModule } from '../../../../lib/staff-portal-config'
 import { dashboardRoleLabels } from '../../../../lib/staff-portal-config'
+import { useStaffLive } from './staff-live-refresh'
 
 const navSymbols: Record<string, string> = {
   dashboard: '⌂',
@@ -22,26 +23,47 @@ const navSymbols: Record<string, string> = {
   administracion: '⚙',
 }
 
-type PendingSummary = {
-  pending?: number
-  latest?: { id?: string; helpType?: string; createdAt?: string } | null
-}
-
 type RequestAlert = {
   kind: 'need' | 'offer'
   title: string
   message: string
 }
 
-export function PortalHeader({ name, role, modules }: { name: string; role: DashboardRole; modules: PortalModule[] }) {
+type RequestAlertBaseline = {
+  pending: number
+  latestId: string
+  latestCreatedAt: number
+}
+
+function getRequestAlertBaseline(summary: NonNullable<ReturnType<typeof useStaffLive>['pendingSummary']>): RequestAlertBaseline {
+  const createdAt = summary.latest?.createdAt ? new Date(summary.latest.createdAt).getTime() : 0
+  return {
+    pending: Math.max(Number(summary.pending) || 0, 0),
+    latestId: typeof summary.latest?.id === 'string' ? summary.latest.id : '',
+    latestCreatedAt: Number.isFinite(createdAt) ? createdAt : 0,
+  }
+}
+
+function isNewRequest(current: RequestAlertBaseline, previous: RequestAlertBaseline) {
+  const newerLatest = Boolean(
+    current.latestId
+      && current.latestId !== previous.latestId
+      && current.latestCreatedAt >= previous.latestCreatedAt,
+  )
+  return current.pending > previous.pending || newerLatest
+}
+
+export function PortalHeader({ name, userId, role, modules }: { name: string; userId: string; role: DashboardRole; modules: PortalModule[] }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [pendingRequests, setPendingRequests] = useState(0)
   const [requestAlert, setRequestAlert] = useState<RequestAlert | null>(null)
   const navRef = useRef<HTMLElement | null>(null)
-  const previousSummaryRef = useRef<{ pending: number; latestId: string; latestCreatedAt: number } | null>(null)
+  const alertBaselineRef = useRef<RequestAlertBaseline | null>(null)
+  const alertBaselineInitializedRef = useRef(false)
   const alertTimerRef = useRef<number | null>(null)
+  const { pendingSummary } = useStaffLive()
+  const pendingRequests = pendingSummary?.pending ?? 0
 
   useEffect(() => {
     setMobileOpen(false)
@@ -83,48 +105,53 @@ export function PortalHeader({ name, role, modules }: { name: string; role: Dash
   }, [])
 
   useEffect(() => {
-    let cancelled = false
+    if (!pendingSummary) return
 
-    const loadPendingSummary = async () => {
-      try {
-        const response = await fetch('/api/equipo/administracion?summary=pending', { cache: 'no-store' })
-        if (!response.ok) return
-        const summary = await response.json() as PendingSummary
-        if (cancelled) return
+    const current = getRequestAlertBaseline(pendingSummary)
+    const storageKey = `pls-al-llamado:request-alert:${userId}`
+    let persisted: RequestAlertBaseline | null = null
 
-        const pending = Math.max(Number(summary.pending) || 0, 0)
-        const latestId = typeof summary.latest?.id === 'string' ? summary.latest.id : ''
-        const latestCreatedAt = summary.latest?.createdAt ? new Date(summary.latest.createdAt).getTime() : 0
-        const previous = previousSummaryRef.current
-        const latestIsNew = Boolean(previous && summary.latest && latestId && latestId !== previous.latestId && latestCreatedAt >= previous.latestCreatedAt)
-        const newPendingRequest = Boolean(previous && summary.latest && (pending > previous.pending || latestIsNew))
-
-        setPendingRequests(pending)
-        if (newPendingRequest) {
-          const isOffer = summary.latest?.helpType === 'ofrecer-ayuda'
-          setRequestAlert({
-            kind: isOffer ? 'offer' : 'need',
-            title: isOffer ? 'Nueva oferta de ayuda' : 'Nueva solicitud de ayuda',
-            message: isOffer ? 'Alguien ofreció recursos, tiempo o transporte.' : 'Alguien necesita apoyo del centro.',
-          })
-          if (alertTimerRef.current) window.clearTimeout(alertTimerRef.current)
-          alertTimerRef.current = window.setTimeout(() => setRequestAlert(null), 8000)
+    try {
+      const stored = window.sessionStorage.getItem(storageKey)
+      if (stored) {
+        const parsed = JSON.parse(stored) as Partial<RequestAlertBaseline>
+        if (typeof parsed.pending === 'number' && typeof parsed.latestId === 'string' && typeof parsed.latestCreatedAt === 'number') {
+          persisted = {
+            pending: Math.max(parsed.pending, 0),
+            latestId: parsed.latestId,
+            latestCreatedAt: Number.isFinite(parsed.latestCreatedAt) ? parsed.latestCreatedAt : 0,
+          }
         }
-        previousSummaryRef.current = { pending, latestId, latestCreatedAt }
-      } catch {
-        // El contador conserva su último valor si una consulta temporal falla.
       }
+    } catch {
+      persisted = null
     }
 
-    void loadPendingSummary()
-    const interval = window.setInterval(loadPendingSummary, 5000)
-    window.addEventListener('focus', loadPendingSummary)
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-      window.removeEventListener('focus', loadPendingSummary)
+    const previous = alertBaselineInitializedRef.current ? alertBaselineRef.current : persisted
+    const newPendingRequest = Boolean(previous && isNewRequest(current, previous))
+
+    if (newPendingRequest) {
+      const isOffer = pendingSummary.latest?.helpType === 'ofrecer-ayuda'
+      setRequestAlert({
+        kind: isOffer ? 'offer' : 'need',
+        title: isOffer ? 'Nueva oferta de ayuda' : 'Nueva solicitud de ayuda',
+        message: isOffer ? 'Alguien ofreció recursos, tiempo o transporte.' : 'Alguien necesita apoyo del centro.',
+      })
       if (alertTimerRef.current) window.clearTimeout(alertTimerRef.current)
+      alertTimerRef.current = window.setTimeout(() => setRequestAlert(null), 8000)
     }
+
+    alertBaselineInitializedRef.current = true
+    alertBaselineRef.current = current
+    try {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(current))
+    } catch {
+      // El aviso sigue funcionando aunque el navegador no permita almacenamiento de sesión.
+    }
+  }, [pendingSummary, userId])
+
+  useEffect(() => () => {
+    if (alertTimerRef.current) window.clearTimeout(alertTimerRef.current)
   }, [])
 
   async function logout() {

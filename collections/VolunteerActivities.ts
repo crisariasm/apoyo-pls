@@ -19,7 +19,7 @@ export const VolunteerActivities: CollectionConfig = {
   fields: [
     { name: 'title', type: 'text', label: 'Actividad', required: true },
     { name: 'description', type: 'textarea', label: 'Descripción', required: true },
-    { name: 'date', type: 'date', label: 'Fecha', required: true },
+    { name: 'date', type: 'date', label: 'Fecha', required: true, index: true },
     { name: 'startTime', type: 'text', label: 'Hora de inicio', required: true },
     { name: 'endTime', type: 'text', label: 'Hora de cierre', required: true },
     { name: 'location', type: 'text', label: 'Lugar', required: true },
@@ -27,6 +27,7 @@ export const VolunteerActivities: CollectionConfig = {
     { name: 'registered', type: 'number', label: 'Personas inscritas', defaultValue: 0, min: 0 },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -37,7 +38,7 @@ export const VolunteerActivities: CollectionConfig = {
         { label: 'Finalizada', value: 'finalizada' },
       ],
     },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true, index: true },
     { name: 'lead', type: 'text', label: 'Persona responsable' },
   ],
 }

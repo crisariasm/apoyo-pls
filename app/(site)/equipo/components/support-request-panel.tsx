@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
+import { useStaffModuleRefresh } from './staff-live-refresh'
+
 type RecordData = Record<string, unknown>
 
 const statusLabels: Record<string, string> = {
@@ -90,26 +92,13 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
   const saved = useMemo(() => records.filter((record) => record.status !== 'pendiente'), [records])
   const canSaveSelected = Boolean(selected && canManage && (selected.status === 'pendiente' || status !== selected.status || internalNotes !== (typeof selected.internalNotes === 'string' ? selected.internalNotes : '')))
 
-  useEffect(() => {
-    if (selected || saving) return
-    let cancelled = false
-    const refreshRequests = async () => {
-      try {
-        const response = await fetch('/api/equipo/administracion?limit=20&page=1', { cache: 'no-store' })
-        const result = await response.json() as { docs?: RecordData[] }
-        if (response.ok && result.docs && !cancelled) setRecords(result.docs)
-      } catch {
-        // La información visible se conserva si una actualización automática falla.
-      }
-    }
-    const interval = window.setInterval(refreshRequests, 5000)
-    window.addEventListener('focus', refreshRequests)
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-      window.removeEventListener('focus', refreshRequests)
-    }
-  }, [selected, saving])
+  useStaffModuleRefresh({
+    url: '/api/equipo/administracion?limit=20&page=1',
+    enabled: !selected && !saving,
+    onData: (result) => {
+      if (result.docs) setRecords(result.docs)
+    },
+  })
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 30_000)

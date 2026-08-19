@@ -27,6 +27,7 @@ function getR2Config(): R2Config | null {
 
   try {
     const endpointUrl = new URL(rawEndpoint)
+    if (endpointUrl.protocol !== 'https:') return null
     const bucketPath = `/${encodeURIComponent(bucket)}`
     if (endpointUrl.pathname.replace(/\/$/, '') === bucketPath) endpointUrl.pathname = ''
     endpointUrl.search = ''
@@ -51,6 +52,15 @@ function objectPath(bucket: string, key: string) {
   return `/${encodeRFC3986(bucket)}/${key.split('/').map(encodeRFC3986).join('/')}`
 }
 
+function isSafeObjectKey(key: string) {
+  return key.length > 0
+    && key.length <= 512
+    && !key.startsWith('/')
+    && !key.includes('\\')
+    && key.split('/').every((segment) => segment && segment !== '.' && segment !== '..')
+    && /^[a-zA-Z0-9._/-]+$/.test(key)
+}
+
 function signingKey(secretAccessKey: string, dateStamp: string, region: string) {
   const dateKey = hmac(`AWS4${secretAccessKey}`, dateStamp)
   const regionKey = hmac(dateKey, region)
@@ -59,6 +69,7 @@ function signingKey(secretAccessKey: string, dateStamp: string, region: string) 
 }
 
 async function signedRequest(method: 'DELETE' | 'GET' | 'PUT', key: string, body?: R2Body, contentType?: string) {
+  if (!isSafeObjectKey(key)) throw new Error('La clave del objeto R2 no es válida.')
   const config = requireR2Config()
   const endpoint = new URL(config.endpoint)
   const path = objectPath(config.bucket, key)
@@ -93,7 +104,12 @@ async function signedRequest(method: 'DELETE' | 'GET' | 'PUT', key: string, body
 }
 
 export function createR2Key(filename: string) {
-  const prefix = (process.env.R2_PREFIX?.trim() || 'media').replace(/^\/+|\/+$/g, '')
+  const prefix = (process.env.R2_PREFIX?.trim() || 'media')
+    .replace(/^\/+|\/+$/g, '')
+    .split('/')
+    .map((segment) => segment.replace(/[^a-zA-Z0-9._-]/g, '-'))
+    .filter((segment) => segment && segment !== '.' && segment !== '..')
+    .join('/') || 'media'
   const safeFilename = filename.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'archivo'
   return `${prefix}/${randomUUID()}-${safeFilename}`
 }

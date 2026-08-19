@@ -1,5 +1,3 @@
-const encoder = new TextEncoder()
-
 export class RequestBodyTooLargeError extends Error {
   constructor() {
     super('El contenido enviado supera el límite permitido.')
@@ -14,12 +12,46 @@ export class InvalidRequestBodyError extends Error {
   }
 }
 
-export async function readJsonBody<T>(request: Request, maxBytes: number): Promise<T> {
+export async function readRequestBody(request: Request, maxBytes: number): Promise<Uint8Array> {
   const declaredLength = Number(request.headers.get('content-length') || 0)
   if (Number.isFinite(declaredLength) && declaredLength > maxBytes) throw new RequestBodyTooLargeError()
 
-  const raw = await request.text()
-  if (encoder.encode(raw).byteLength > maxBytes) throw new RequestBodyTooLargeError()
+  if (!request.body) throw new InvalidRequestBodyError()
+
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let totalBytes = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      totalBytes += value.byteLength
+      if (totalBytes > maxBytes) {
+        void reader.cancel().catch(() => undefined)
+        throw new RequestBodyTooLargeError()
+      }
+
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const body = new Uint8Array(totalBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    body.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+
+  return body
+}
+
+export async function readJsonBody<T>(request: Request, maxBytes: number): Promise<T> {
+  const body = await readRequestBody(request, maxBytes)
+  const raw = new TextDecoder().decode(body)
 
   try {
     return JSON.parse(raw) as T
@@ -33,6 +65,9 @@ export function isPlainRecord(value: unknown): value is Record<string, unknown> 
 }
 
 export function isSameOriginRequest(request: Request) {
+  const fetchSite = request.headers.get('sec-fetch-site')?.toLowerCase()
+  if (fetchSite === 'cross-site') return false
+
   const origin = request.headers.get('origin')
   if (!origin) return true
 
@@ -55,15 +90,21 @@ export function getClientAddress(request: Request) {
 
 type RateLimitEntry = { count: number; resetAt: number }
 const rateLimitStore = new Map<string, RateLimitEntry>()
+const MAX_RATE_LIMIT_ENTRIES = 5000
 
 export function checkRateLimit(key: string, limit: number, windowMs: number) {
   const now = Date.now()
   const current = rateLimitStore.get(key)
   if (!current || current.resetAt <= now) {
     rateLimitStore.set(key, { count: 1, resetAt: now + windowMs })
-    if (rateLimitStore.size > 2000) {
+    if (rateLimitStore.size > MAX_RATE_LIMIT_ENTRIES) {
       for (const [entryKey, entry] of rateLimitStore) {
         if (entry.resetAt <= now) rateLimitStore.delete(entryKey)
+      }
+      while (rateLimitStore.size > MAX_RATE_LIMIT_ENTRIES) {
+        const oldestKey = rateLimitStore.keys().next().value as string | undefined
+        if (!oldestKey) break
+        rateLimitStore.delete(oldestKey)
       }
     }
     return { allowed: true, retryAfter: 0 }

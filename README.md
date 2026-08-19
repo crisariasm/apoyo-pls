@@ -157,14 +157,15 @@ En producción, `PAYLOAD_SECRET` debe tener al menos 32 caracteres.
 
 ### Usuarios creados por el seeder
 
-| Variable | Valor predeterminado | Uso |
+Las credenciales de prueba están definidas directamente en
+`scripts/seed-with-migrations.ts`. El seeder no lee correos ni contraseñas desde
+`.env`.
+
+| Usuario | Valor definido en el seed | Uso |
 |---|---|---|
-| `SEED_ADMIN_EMAIL` | `admin@plsalllamado.local` | Administrador técnico de Payload |
-| `SEED_ADMIN_PASSWORD` | `PLsAdmin2026!` | Contraseña de prueba |
-| `SEED_SUPER_ADMIN_EMAIL` | `superadmin@plsalllamado.local` | Superadministrador técnico de Payload |
-| `SEED_SUPER_ADMIN_PASSWORD` | `PLsSuper2026!` | Contraseña de prueba |
-| `SEED_PORTAL_EMAIL` | `administracion@plsalllamado.local` | Usuario del rol de administración |
-| `SEED_PORTAL_PASSWORD` | `PLsEquipo2026!` | Contraseña compartida de prueba para roles operativos |
+| Administrador Payload | `admin@plsalllamado.local` / `PLsAdmin2026!` | Acceso técnico a Payload |
+| Superadministrador Payload | `superadmin@plsalllamado.local` / `PLsSuper2026!` | Acceso total a Payload |
+| Equipo operativo | `PLsEquipo2026!` | Contraseña de los roles del portal `/equipo` |
 
 Las contraseñas predeterminadas son solo para desarrollo. Deben cambiarse antes de utilizar el proyecto fuera de pruebas.
 
@@ -699,7 +700,7 @@ Carga o actualiza datos de demostración realistas para que la aplicación no ap
 - 10 actividades.
 - 8 solicitudes internas.
 - Usuarios de Payload y un usuario por rol operativo.
-- Medios iniciales para comunicados, vivienda y evidencias.
+- Rutas de imágenes iniciales de comunicados y evidencias tomadas desde `public/`; el seeder no crea archivos ni documentos en `media`.
 
 El seeder es idempotente:
 
@@ -736,19 +737,19 @@ esquema inicial.
 
 #### Equipo operativo
 
-Todos los siguientes usuarios usan `PLsEquipo2026!` salvo que cambies `SEED_PORTAL_PASSWORD`:
+Todos los siguientes usuarios usan la contraseña definida en el seed: `PLsEquipo2026!`:
 
 | Rol | Correo |
 |---|---|
 | Administración | `administracion@plsalllamado.local` |
 | Qué tenemos | `que-tenemos@plsalllamado.local` |
 | Qué necesitamos | `que-necesitamos@plsalllamado.local` |
-| Anuncios | `anuncios@plsallamado.local` |
-| Boletín | `boletin@plsallamado.local` |
-| Servicios | `servicios@plsallamado.local` |
+| Anuncios | `anuncios@plsalllamado.local` |
+| Boletín | `boletin@plsalllamado.local` |
+| Servicios | `servicios@plsalllamado.local` |
 | Inventario | `inventario@plsalllamado.local` |
-| Distribución | `distribucion@plsallamado.local` |
-| Comunicados | `comunicados@plsallamado.local` |
+| Distribución | `distribucion@plsalllamado.local` |
+| Comunicados | `comunicados@plsalllamado.local` |
 
 ## UUID y migraciones
 

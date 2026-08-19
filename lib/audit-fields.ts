@@ -1,5 +1,7 @@
 import { ValidationError, type CollectionBeforeChangeHook, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
+import { isPayloadAdminUser } from './access'
+
 const seedActor = 'Carga inicial del sistema'
 const maxLengths: Record<string, number> = {
   title: 160,
@@ -97,6 +99,7 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         type: 'text',
         label: 'Registrado por',
         maxLength: 160,
+        access: { read: isPayloadAdminUser },
         admin: { readOnly: true, description: 'Se completa automáticamente con la persona que creó el registro.' },
       },
       {
@@ -104,6 +107,7 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         type: 'text',
         label: 'ID del creador',
         maxLength: 64,
+        access: { read: isPayloadAdminUser },
         admin: { readOnly: true, hidden: true },
       },
       {
@@ -111,6 +115,7 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         type: 'text',
         label: 'Última actualización por',
         maxLength: 160,
+        access: { read: isPayloadAdminUser },
         admin: { readOnly: true, description: 'Se actualiza automáticamente con la última persona que lo modificó.' },
       },
       {
@@ -118,6 +123,7 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         type: 'text',
         label: 'ID de quien actualizó',
         maxLength: 64,
+        access: { read: isPayloadAdminUser },
         admin: { readOnly: true, hidden: true },
       },
     ],

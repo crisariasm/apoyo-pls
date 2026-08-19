@@ -1,7 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { basename, resolve } from 'node:path'
 
 import { Pool } from 'pg'
 import { getPayload } from 'payload'
@@ -264,12 +262,6 @@ const numberFromLabel = (value: string) => Number.parseInt(value, 10) || 0
 const unitFromLabel = (value: string) => value.replace(/^\d+\s*/, '') || 'unidades'
 const slugify = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replaceAll(' ', '-')
 
-const mediaFiles = [
-  { id: seedId(), key: '/community-notice-animals.png', alt: 'Animales encontrados y acompañados por la red comunitaria.' },
-  { id: seedId(), key: '/community-notice-housing.png', alt: 'Casa disponible en arriendo compartida por la comunidad.' },
-  { id: seedId(), key: '/hero-PLs-al-llamado.png', alt: 'Personas organizando ayudas en el centro de acopio.' },
-]
-
 const resources = seedResources.map((resource, index) => ({
   id: resource.id,
   name: resource.name,
@@ -361,7 +353,7 @@ const communityNotices = seedCommunityNotices.map((notice, index) => ({
   title: notice.title,
   body: notice.body,
   category: slugify(notice.category),
-  imageKey: notice.image,
+  imagePath: notice.image,
   location: notice.location,
   contact: notice.contact,
   status: 'publicado',
@@ -398,19 +390,19 @@ const bulletins = seedBulletins.map((bulletin, index) => ({
   publishedAt: new Date(Date.now() - index * 24 * 60 * 60 * 1000).toISOString(),
 }))
 
-const seedAdminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@plsalllamado.local'
-const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD || 'PLsAdmin2026!'
-const seedSuperAdminEmail = process.env.SEED_SUPER_ADMIN_EMAIL || 'superadmin@plsalllamado.local'
-const seedSuperAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD || 'PLsSuper2026!'
-const seedPortalEmail = process.env.SEED_PORTAL_EMAIL || 'administracion@plsalllamado.local'
-const seedPortalPassword = process.env.SEED_PORTAL_PASSWORD || 'PLsEquipo2026!'
+const seedAdminEmail = 'admin@plsalllamado.local'
+const seedAdminPassword = 'PLsAdmin2026!'
+const seedSuperAdminEmail = 'superadmin@plsalllamado.local'
+const seedSuperAdminPassword = 'PLsSuper2026!'
+const seedPortalPassword = 'PLsEquipo2026!'
 const seedAuditActor = 'Carga inicial del sistema'
+const seedContext = { seed: true }
 const legacySeedActors = new Set(['Seeder inicial PLs al llamado', 'Administrador de prueba', 'Carga inicial del sistema'])
 const auditActor = (value: unknown) => typeof value === 'string' && value.trim() ? value : seedAuditActor
 const auditUserId = (value: unknown) => typeof value === 'string' && value.trim() ? value : null
 
 const portalSeedUsers: Array<{ email: string; name: string; role: StaffRole }> = [
-  { email: seedPortalEmail, name: 'Equipo de administración', role: 'administracion' },
+  { email: 'administracion@plsalllamado.local', name: 'Equipo de administración', role: 'administracion' },
   { email: 'que-tenemos@plsalllamado.local', name: 'Equipo que tenemos', role: 'que-tenemos' },
   { email: 'que-necesitamos@plsalllamado.local', name: 'Equipo que necesitamos', role: 'que-necesitamos' },
   { email: 'anuncios@plsalllamado.local', name: 'Equipo de anuncios', role: 'anuncios' },
@@ -439,7 +431,7 @@ async function seed() {
         updatedBy: previousWasSeeded ? seedAuditActor : auditActor(previous.updatedBy),
         updatedByUserId: previousWasSeeded ? null : auditUserId(previous.updatedByUserId),
       }
-      await payload.update({ collection, id: existing.docs[0].id, data: auditedData as never, overrideAccess: true })
+      await payload.update({ collection, id: existing.docs[0].id, data: auditedData as never, context: seedContext, overrideAccess: true })
       return existing.docs[0].id
     }
     const created = await payload.create({
@@ -452,23 +444,10 @@ async function seed() {
         updatedBy: seedAuditActor,
         updatedByUserId: null,
       } as never,
+      context: seedContext,
       overrideAccess: true,
     })
     return created.id
-  }
-
-  const mediaIds: Record<string, string> = {}
-  for (const media of mediaFiles) {
-    const filePath = resolve(process.cwd(), 'public', media.key.slice(1))
-    if (!existsSync(filePath)) throw new Error(`No se encontró el archivo multimedia ${filePath}`)
-    const filename = basename(filePath)
-    const existing = await payload.find({ collection: 'media', where: { filename: { equals: filename } }, limit: 1, overrideAccess: true })
-    if (existing.docs.length) {
-      mediaIds[media.key] = String(existing.docs[0].id)
-    } else {
-      const created = await payload.create({ collection: 'media', data: { id: media.id, alt: media.alt }, filePath, overrideAccess: true })
-      mediaIds[media.key] = String(created.id)
-    }
   }
 
   for (const resource of resources) await ensure('resources', ['name'], resource)
@@ -488,7 +467,7 @@ async function seed() {
         id: item.id,
         sourceType: 'distribucion',
         distribution: distributionId,
-        image: mediaIds[item.image] || mediaIds['/hero-PLs-al-llamado.png'],
+        publicImagePath: item.image,
         title: item.title,
         description: item.description,
         status: 'publicado',
@@ -499,8 +478,8 @@ async function seed() {
   }
 
   for (const notice of communityNotices) {
-    const { imageKey, ...noticeData } = notice
-    await ensure('community-notices', ['title'], { ...noticeData, image: mediaIds[imageKey] })
+    const { imagePath, ...noticeData } = notice
+    await ensure('community-notices', ['title'], { ...noticeData, publicImagePath: imagePath })
   }
 
   await payload.updateGlobal({
@@ -553,4 +532,3 @@ main().catch((error) => {
   console.error(error)
   process.exit(1)
 })
-

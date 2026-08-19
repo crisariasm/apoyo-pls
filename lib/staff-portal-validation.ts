@@ -56,6 +56,7 @@ export function validatePortalData(module: PortalModule, data: FormData, options
       else if (field.min !== undefined && numberValue < field.min) errors.push(`${field.label} debe ser igual o mayor que ${field.min}.`)
     }
     if (field.type === 'date' && !isBlank(value) && Number.isNaN(new Date(String(value)).getTime())) errors.push(`${field.label} debe tener una fecha válida.`)
+    if (field.type === 'upload' && !isBlank(value) && (typeof value !== 'string' || !isUUID(value))) errors.push(`${field.label} no es válida.`)
     const isDynamicEvidenceDistribution = module.slug === 'evidencias' && field.name === 'distribution' && typeof value === 'string' && isUUID(value)
     if (field.type === 'select' && !isBlank(value) && !isDynamicEvidenceDistribution && !field.options?.some((option) => option.value === value)) errors.push(`${field.label} contiene una opción no válida.`)
     if (field.type === 'checkbox' && !isBlank(value) && typeof value !== 'boolean') errors.push(`${field.label} debe ser verdadero o falso.`)

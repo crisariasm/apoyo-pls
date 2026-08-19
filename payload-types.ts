@@ -441,7 +441,8 @@ export interface DistributionEvidence {
   sourceType: 'distribucion' | 'otro';
   distribution?: (string | null) | Distribution;
   otherReference?: string | null;
-  image: string | Media;
+  image?: (string | null) | Media;
+  publicImagePath?: string | null;
   title: string;
   description: string;
   status: 'borrador' | 'publicado' | 'archivado';
@@ -506,6 +507,7 @@ export interface CommunityNotice {
     | 'vivienda'
     | 'otro';
   image?: (string | null) | Media;
+  publicImagePath?: string | null;
   location: string;
   contact: string;
   status: 'borrador' | 'publicado' | 'archivado';
@@ -900,6 +902,7 @@ export interface DistributionEvidenceSelect<T extends boolean = true> {
   distribution?: T;
   otherReference?: T;
   image?: T;
+  publicImagePath?: T;
   title?: T;
   description?: T;
   status?: T;
@@ -941,6 +944,7 @@ export interface CommunityNoticesSelect<T extends boolean = true> {
   body?: T;
   category?: T;
   image?: T;
+  publicImagePath?: T;
   location?: T;
   contact?: T;
   status?: T;

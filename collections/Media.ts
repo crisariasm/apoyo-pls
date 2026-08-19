@@ -68,12 +68,12 @@ export const Media: CollectionConfig = {
   },
   fields: [
     { name: 'alt', type: 'text', label: 'Texto alternativo', required: true, maxLength: 160 },
-    { name: 'r2Key', type: 'text', label: 'Clave R2', maxLength: 500, admin: { readOnly: true, hidden: true } },
-    { name: 'r2Filename', type: 'text', label: 'Nombre del archivo R2', maxLength: 255, admin: { readOnly: true, hidden: true } },
-    { name: 'r2MimeType', type: 'text', label: 'Tipo MIME R2', maxLength: 100, admin: { readOnly: true, hidden: true } },
-    { name: 'r2Filesize', type: 'number', label: 'Tamaño R2', admin: { readOnly: true, hidden: true } },
-    { name: 'uploadedByUserId', type: 'text', label: 'ID de quien cargó', admin: { readOnly: true, hidden: true } },
-    { name: 'uploadedByName', type: 'text', label: 'Cargada por', maxLength: 160, admin: { readOnly: true, hidden: true } },
+    { name: 'r2Key', type: 'text', label: 'Clave R2', maxLength: 500, access: { read: isPayloadAdminUser }, admin: { readOnly: true, hidden: true } },
+    { name: 'r2Filename', type: 'text', label: 'Nombre del archivo R2', maxLength: 255, access: { read: isPayloadAdminUser }, admin: { readOnly: true, hidden: true } },
+    { name: 'r2MimeType', type: 'text', label: 'Tipo MIME R2', maxLength: 100, access: { read: isPayloadAdminUser }, admin: { readOnly: true, hidden: true } },
+    { name: 'r2Filesize', type: 'number', label: 'Tamaño R2', access: { read: isPayloadAdminUser }, admin: { readOnly: true, hidden: true } },
+    { name: 'uploadedByUserId', type: 'text', label: 'ID de quien cargó', access: { read: isPayloadAdminUser }, admin: { readOnly: true, hidden: true } },
+    { name: 'uploadedByName', type: 'text', label: 'Cargada por', maxLength: 160, access: { read: isPayloadAdminUser }, admin: { readOnly: true, hidden: true } },
   ],
   hooks: {
     beforeChange: [uploadToR2],

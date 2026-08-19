@@ -316,6 +316,7 @@ export const portalModules: PortalModule[] = [
         { label: 'Vivienda', value: 'vivienda' },
         { label: 'Otro', value: 'otro' },
       ] },
+      { name: 'image', label: 'Imagen', type: 'upload', required: true, description: 'Imagen del comunicado. No incluyas rostros de menores, documentos ni ubicaciones sensibles.' },
       { name: 'location', label: 'Zona general', type: 'text', required: true },
       { name: 'contact', label: 'Canal o responsable', type: 'text', required: true },
       { name: 'status', label: 'Estado', type: 'select', required: true, options: [

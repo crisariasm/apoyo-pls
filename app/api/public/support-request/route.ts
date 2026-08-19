@@ -65,6 +65,7 @@ export async function POST(request: Request) {
         contactChannel,
         privacyAccepted: true,
       } as never,
+      overrideAccess: true,
     })
     return NextResponse.json({ ok: true, id: doc.id, message: 'Solicitud recibida correctamente.' }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
   } catch {

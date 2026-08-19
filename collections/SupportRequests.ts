@@ -23,7 +23,10 @@ export const SupportRequests: CollectionConfig = {
   },
   access: {
     admin: isPayloadAdminUser,
-    create: () => true,
+    // Las solicitudes públicas solo se crean mediante /api/public/support-request,
+    // que valida el body, el aviso de privacidad y el límite por IP antes de usar
+    // overrideAccess de forma explícita.
+    create: isCoordinator,
     read: isCoordinator,
     update: isCoordinator,
     delete: isCoordinator,

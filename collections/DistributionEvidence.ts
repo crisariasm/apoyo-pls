@@ -2,7 +2,8 @@ import { ValidationError, type CollectionBeforeValidateHook, type CollectionConf
 
 import { canManageDistribution, isPayloadAdminUser, publicStatusRead } from '../lib/access'
 
-const validateEvidenceSource: CollectionBeforeValidateHook = ({ data, req }) => {
+const validateEvidenceSource: CollectionBeforeValidateHook = ({ data, operation, req }) => {
+  const isSeedContext = req.context?.seed === true
   const sourceType = data && typeof data.sourceType === 'string' ? data.sourceType : 'distribucion'
   const distribution = data?.distribution
   const otherReference = typeof data?.otherReference === 'string' ? data.otherReference.trim() : ''
@@ -11,6 +12,15 @@ const validateEvidenceSource: CollectionBeforeValidateHook = ({ data, req }) => 
   }
   if (sourceType === 'otro' && !otherReference) {
     throw new ValidationError({ collection: 'distribution-evidence', errors: [{ path: 'otherReference', message: 'Completa la referencia del otro registro operativo.' }], req })
+  }
+  const publicImagePath = typeof data?.publicImagePath === 'string' ? data.publicImagePath.trim() : ''
+  const imageWasSubmitted = data ? Object.prototype.hasOwnProperty.call(data, 'image') : false
+  if (publicImagePath && !isSeedContext) {
+    throw new ValidationError({ collection: 'distribution-evidence', errors: [{ path: 'image', message: 'La ruta pública de imagen solo puede ser usada por el seeder.' }], req })
+  }
+  const hasImage = Boolean(data?.image) || (isSeedContext && publicImagePath !== '')
+  if ((operation === 'create' || imageWasSubmitted) && !hasImage) {
+    throw new ValidationError({ collection: 'distribution-evidence', errors: [{ path: 'image', message: 'La imagen es obligatoria.' }], req })
   }
   return data
 }
@@ -55,8 +65,8 @@ export const DistributionEvidence: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
       label: 'Imagen',
-      required: true,
     },
+    { name: 'publicImagePath', type: 'text', label: 'Ruta de imagen pública', maxLength: 255, admin: { hidden: true, readOnly: true } },
     { name: 'title', type: 'text', label: 'Título breve', required: true, maxLength: 160 },
     { name: 'description', type: 'textarea', label: 'Descripción', required: true, maxLength: 2000 },
     {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generatePayloadCookie, getPayload } from 'payload'
+import { createLocalReq, generatePayloadCookie, getPayload, loginOperation } from 'payload'
 
 import config from '../../../../payload.config'
 import { checkRateLimit, getClientAddress, isPlainRecord, isSameOriginRequest, isValidEmail, readJsonBody } from '../../../../lib/input-security'
@@ -30,7 +30,20 @@ export async function POST(request: Request) {
     if (!ipLimit.allowed || !accountLimit.allowed) return loginErrorResponse(429, Math.max(ipLimit.retryAfter, accountLimit.retryAfter))
 
     const payload = await getPayload({ config })
-    const result = await payload.login({ collection: 'users', data: { email, password } })
+    const usersCollection = payload.collections.users
+    if (!usersCollection?.config.auth) return NextResponse.json({ message: 'No fue posible iniciar la sesión operativa.' }, { status: 500 })
+
+    // Se invoca la operación de Payload directamente para conservar el token
+    // únicamente dentro de la cookie HttpOnly. La configuración auth elimina
+    // el token de las respuestas JSON, pero la operación local aún lo devuelve
+    // para que podamos establecer la cookie de forma segura.
+    const loginRequest = await createLocalReq({ req: { headers: new Headers(request.headers), url: request.url } }, payload)
+    const result = await loginOperation({
+      collection: usersCollection,
+      data: { email, password },
+      overrideAccess: true,
+      req: loginRequest,
+    })
     const role = result.user && typeof result.user === 'object' ? (result.user as { role?: unknown; active?: unknown }).role : null
     const active = result.user && typeof result.user === 'object' ? (result.user as { active?: unknown }).active !== false : false
 
@@ -38,8 +51,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 })
     }
 
-    const usersCollection = payload.config.collections.find((collection) => collection.slug === 'users')
-    if (!usersCollection?.auth || !result.token) {
+    if (!result.token) {
       return NextResponse.json({ message: 'No fue posible iniciar la sesión operativa.' }, { status: 500 })
     }
 
@@ -51,7 +63,7 @@ export async function POST(request: Request) {
       },
     }, { headers: { 'Cache-Control': 'no-store' } })
     response.headers.set('Set-Cookie', generatePayloadCookie({
-      collectionAuthConfig: usersCollection.auth,
+      collectionAuthConfig: usersCollection.config.auth,
       cookiePrefix: payload.config.cookiePrefix,
       token: result.token,
     }))

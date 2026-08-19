@@ -48,7 +48,7 @@ La aplicación está construida con:
 | Base de datos | PostgreSQL mediante `@payloadcms/db-postgres` |
 | Identificadores | UUID |
 | Imágenes | Sharp + Cloudflare R2 mediante API S3 compatible |
-| Autenticación | Payload Auth con cookies de sesión |
+| Autenticación | Payload Auth con cookies HttpOnly, sesiones persistidas y renovación segura |
 | Gestor de paquetes | pnpm 9.15.4 |
 | Contenedores locales | Docker Compose para PostgreSQL |
 
@@ -385,6 +385,10 @@ Es una interfaz independiente del administrador original de Payload. Tiene:
 - Estado y visibilidad visibles en cada registro.
 - Auditoría de quién registró y quién actualizó.
 - Mensajes de error en español.
+- Sesión operativa válida hasta 8 horas de inactividad.
+- Renovación automática cada 45 minutos mientras el portal está activo.
+- Revocación de la sesión en servidor al cerrar sesión.
+- Tokens ausentes de las respuestas JSON y almacenados únicamente en cookies HttpOnly.
 
 ### Dashboard: `/equipo`
 
@@ -627,6 +631,7 @@ Todos requieren sesión operativa y validación de rol.
 | Método | Ruta | Uso |
 |---|---|---|
 | POST | `/api/equipo/login` | Inicia sesión operativa |
+| POST | `/api/equipo/refresh` | Renueva la sesión operativa sin exponer el token |
 | POST | `/api/equipo/logout` | Cierra sesión operativa |
 | GET | `/api/equipo/:module` | Lista registros paginados del módulo |
 | GET | `/api/equipo/administracion?summary=pending` | Devuelve únicamente el total y tipo de la solicitud pendiente más reciente para el contador y las alertas |

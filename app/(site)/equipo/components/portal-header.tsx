@@ -50,6 +50,39 @@ export function PortalHeader({ name, role, modules }: { name: string; role: Dash
   }, [pathname])
 
   useEffect(() => {
+    const refreshInterval = 45 * 60 * 1000
+    const lastRefreshRef = { value: 0 }
+    let cancelled = false
+
+    const refreshSession = async (force = false) => {
+      const now = Date.now()
+      if (!force && now - lastRefreshRef.value < refreshInterval) return
+      lastRefreshRef.value = now
+
+      try {
+        const response = await fetch('/api/equipo/refresh', {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store',
+        })
+        if (response.status === 401 && !cancelled) window.location.assign('/equipo/login')
+      } catch {
+        // Un fallo temporal de red no cierra la sesión ni interrumpe el trabajo.
+      }
+    }
+
+    void refreshSession(true)
+    const interval = window.setInterval(() => void refreshSession(), refreshInterval)
+    const handleFocus = () => void refreshSession()
+    window.addEventListener('focus', handleFocus)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
+
+  useEffect(() => {
     let cancelled = false
 
     const loadPendingSummary = async () => {

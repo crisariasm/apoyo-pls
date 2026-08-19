@@ -1,101 +1,190 @@
 # PLs al llamado
 
-Primera versión de la plataforma operativa del centro de acopio PLs al llamado en Pereira.
+Plataforma web para coordinar la red de apoyo y el centro de acopio de **PLs al llamado** en Pereira.
 
-El proyecto utiliza pnpm exclusivamente. La versión esperada está declarada en `package.json` y el proyecto rechaza instalaciones iniciadas con otro gestor de paquetes.
+La aplicación centraliza en un solo lugar:
 
-## Qué incluye
+- Qué recursos tiene el centro.
+- Qué recursos y servicios hacen falta.
+- Qué ayudas están en camino o ya fueron entregadas.
+- Qué actividades puede apoyar la comunidad.
+- Qué comunicados, servicios y boletines están publicados.
+- Qué solicitudes llegan desde los formularios públicos.
+- Qué información puede administrar cada persona del equipo.
 
-- Página pública responsive con una portada breve y navegación por módulos; la landing conserva el resumen y los anuncios destacados.
-- Rutas públicas separadas: `/recursos`, `/necesidades`, `/distribucion`, `/ayudar`, `/solicitar-apoyo`, `/comunicados`, `/servicios` y `/boletin`.
-- Registro público de ayudas recibidas y clasificadas, visible en `/recursos` y en `/api/public/aid-intakes`.
-- Inventario público por categoría, cantidad aproximada, unidad y estado.
-- Necesidades urgentes con prioridad crítica, alta o media.
-- Seguimiento de distribuciones por destino general, organización y estado.
-- Anuncios de horarios, necesidades, rutas, voluntariado e impacto visibles desde la portada.
-- Próximas actividades y registro de voluntariado dentro de `/ayudar`.
-- Formularios públicos para solicitar apoyo, ofrecer recursos o inscribirse como voluntario.
-- Panel administrativo Payload en `/admin`, con su interfaz original y reservado para `admin` y `super-admin`.
-- Portal operativo independiente en `/equipo/login`, con dashboard, indicadores, gráficas y edición por rol.
-- Roles operativos: Rol que tenemos, Rol que necesitamos, Rol de anuncios del centro y boletín informativo, Rol de servicios, Rol de inventario, Rol de distribución, Rol de comunicados y Rol de administración.
-- API REST de Payload en `/api` y endpoints públicos de lectura/escritura segura.
-- PostgreSQL mediante `@payloadcms/db-postgres`.
-- Todos los IDs de documentos de Payload se generan como UUID (`idType: 'uuid'`). Los IDs de las evidencias de distribución también se normalizan a UUID antes de guardar.
-- Imágenes en Cloudflare R2 mediante API S3 compatible: el portal permite cargar o eliminar imágenes, sin reemplazar archivos en una edición. Cada imagen se gira según su orientación, se redimensiona hasta 1600 px, se convierte a WebP y se comprime antes de guardarse; luego se sirve por `/api/media/:id` con lectura firmada en servidor.
-- Imagen principal generada para el proyecto en `public/hero-PLs-al-llamado.png`.
-- Logo vigente en `public/logo-PLs-rosado.png`, favicon PNG en `public/favicon-PLs.png`, favicon ICO en `public/favicon-PLs.ico` y Apple touch icon en `public/apple-touch-icon-PLs.png`.
+La interfaz pública y el portal operativo están separados. El panel original de Payload también permanece separado y solo está disponible para sus roles técnicos.
 
-### Matriz de acceso
+> El proyecto utiliza pnpm exclusivamente. La versión requerida está declarada en `package.json` y el proyecto rechaza instalaciones iniciadas con otro gestor de paquetes.
 
-| Rol | Entrada | Alcance |
-|---|---|---|
-| `admin` | `/admin` | Todo el panel técnico de Payload |
-| `super-admin` | `/admin` | Todo el panel técnico de Payload |
-| `administracion` | `/equipo/login` | Todos los módulos del portal operativo |
-| Cualquier otro rol operativo | `/equipo/login` | Solo el módulo asignado |
+## Índice
 
-Las cuentas `admin` y `super-admin` no se aceptan en el login de `/equipo`; las cuentas operativas no tienen acceso al panel de `/admin`. El portal operativo valida de nuevo el módulo en cada página y endpoint.
+- [Arquitectura](#arquitectura)
+- [Puesta en marcha](#puesta-en-marcha)
+- [Variables de entorno](#variables-de-entorno)
+- [Sitio público](#sitio-público)
+- [Portal operativo del equipo](#portal-operativo-del-equipo)
+- [Roles y permisos](#roles-y-permisos)
+- [Colecciones y datos](#colecciones-y-datos)
+- [Flujos principales](#flujos-principales)
+- [Actualización automática](#actualización-automática)
+- [API](#api)
+- [Imágenes y Cloudflare R2](#imágenes-y-cloudflare-r2)
+- [Seeder de demostración](#seeder-de-demostración)
+- [UUID y migraciones](#uuid-y-migraciones)
+- [Seguridad y privacidad](#seguridad-y-privacidad)
+- [Comandos de desarrollo](#comandos-de-desarrollo)
+- [Producción](#producción)
+- [Solución de problemas](#solución-de-problemas)
 
-## Arranque local
+## Arquitectura
 
-Requisitos: Node.js 20.9+, pnpm y PostgreSQL.
+La aplicación está construida con:
+
+| Capa | Tecnología |
+|---|---|
+| Frontend y servidor | Next.js 15 con App Router |
+| Lenguaje | TypeScript |
+| CMS y API técnica | Payload CMS |
+| Base de datos | PostgreSQL mediante `@payloadcms/db-postgres` |
+| Identificadores | UUID |
+| Imágenes | Sharp + Cloudflare R2 mediante API S3 compatible |
+| Autenticación | Payload Auth con cookies de sesión |
+| Gestor de paquetes | pnpm 9.15.4 |
+| Contenedores locales | Docker Compose para PostgreSQL |
+
+### Organización principal del código
+
+| Carpeta o archivo | Responsabilidad |
+|---|---|
+| `app/(site)` | Páginas públicas y portal operativo |
+| `app/(payload)` | Panel y API original de Payload |
+| `app/api/public` | Endpoints públicos |
+| `app/api/equipo` | Login, CRUD y medios del portal operativo |
+| `app/components` | Componentes reutilizables del sitio público |
+| `collections` | Colecciones y global de Payload |
+| `lib/public-api.ts` | Lectura, normalización y presentación de datos públicos |
+| `lib/staff-portal-config.ts` | Módulos, campos y roles del portal operativo |
+| `lib/staff-portal-auth.ts` | Sesión, permisos y pertenencia de registros |
+| `lib/staff-portal-validation.ts` | Validaciones del portal operativo |
+| `lib/audit-fields.ts` | Auditoría automática de creación y actualización |
+| `lib/input-security.ts` | Límites, origen, rate limiting y lectura segura de solicitudes |
+| `lib/image-processing.ts` | Rotación, redimensión y conversión de imágenes a WebP |
+| `lib/r2-storage.ts` | Firmado de operaciones GET, PUT y DELETE contra R2 |
+| `scripts/seed.ts` | Carga idempotente de datos y usuarios de prueba |
+| `scripts/seed-data.ts` | Casos de demostración del sistema |
+| `payload.config.ts` | Configuración de Payload, PostgreSQL, UUID y colecciones |
+
+## Puesta en marcha
+
+### Requisitos
+
+- Node.js 20.9 o superior.
+- pnpm 9.15.4 o superior.
+- PostgreSQL 16 o compatible.
+- Docker y Docker Compose, solo si quieres levantar PostgreSQL localmente.
+- Credenciales de Cloudflare R2 para cargar imágenes desde el portal operativo.
+
+### Instalación
+
+Desde la raíz del proyecto:
 
 ```bash
 pnpm install
-cp .env.example .env
-pnpm dev
 ```
 
-Para usar una base local con Docker:
+El script `preinstall` bloquea instalaciones iniciadas con npm, yarn o bun.
+
+Copia las variables de ejemplo:
+
+```bash
+cp .env.example .env
+```
+
+Completa al menos:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/pls_al_llamado
+PAYLOAD_SECRET=escribe-un-secreto-largo-de-al-menos-32-caracteres
+NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+```
+
+### PostgreSQL con Docker
+
+El proyecto incluye [docker-compose.yml](./docker-compose.yml):
 
 ```bash
 docker compose up -d
 ```
 
-Luego define `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/pls_al_llamado` en `.env` y genera los tipos:
+Ese servicio crea:
+
+- Base: `pls_al_llamado`
+- Usuario: `postgres`
+- Contraseña local: `postgres`
+- Puerto: `5432`
+
+Si usas otra instancia de PostgreSQL, cambia `DATABASE_URL` en `.env`.
+
+### Desarrollo
 
 ```bash
-pnpm payload:generate
 pnpm dev
 ```
 
-En desarrollo, `payload.config.ts` usa `push` automático para crear o sincronizar el esquema al iniciar la aplicación. En producción `push` queda desactivado; allí debes crear y aplicar migraciones versionadas antes de arrancar:
+Direcciones locales:
 
-```bash
-pnpm payload:migrate:create
-pnpm payload:migrate
-pnpm payload:seed
-```
+| Servicio | URL |
+|---|---|
+| Sitio público | http://localhost:3000 |
+| Panel Payload | http://localhost:3000/admin |
+| Portal del equipo | http://localhost:3000/equipo/login |
+| Estado del servicio | http://localhost:3000/api/health |
 
-### Convertir una base existente a UUID
+En desarrollo, Payload usa `push` automático para sincronizar el esquema cuando inicia. En producción este comportamiento queda desactivado y se deben usar migraciones versionadas.
 
-Si la base se creó antes de activar UUID, detén la aplicación y crea primero un respaldo. Después ejecuta el migrador transaccional:
+## Variables de entorno
 
-```bash
-UUID_MIGRATION_CONFIRM=YES pnpm payload:ids:uuid
-pnpm payload:generate
-pnpm payload:migrate
-```
+El archivo [.env.example](./.env.example) contiene la plantilla completa.
 
-El migrador conserva los registros, genera un UUID nuevo para cada documento, actualiza las relaciones de Payload y normaliza los IDs de sesiones y evidencias. Si encuentra una relación huérfana o una clave compuesta, revierte toda la transacción y reporta el problema. No uses `payload migrate:fresh` para conservar datos.
+### Variables generales
 
-### Reiniciar la base completamente
+| Variable | Obligatoria | Uso |
+|---|---:|---|
+| `DATABASE_URL` | Sí | Conexión a PostgreSQL |
+| `PAYLOAD_SECRET` | Sí en producción | Firma de sesiones y secretos internos |
+| `NEXT_PUBLIC_SERVER_URL` | Sí | URL permitida para CORS, CSRF y enlaces públicos |
 
-Si quieres comenzar sin ningún registro, incluyendo usuarios, crea un respaldo y ejecuta el reset únicamente sobre la `DATABASE_URL` revisada:
+En producción, `PAYLOAD_SECRET` debe tener al menos 32 caracteres.
 
-```bash
-RESET_DATABASE_CONFIRM=YES pnpm payload:reset
-pnpm payload:generate
-pnpm dev
-```
+### Usuarios creados por el seeder
 
-Después abre `/admin` y registra el primer usuario. El rol inicial queda como `admin`, por lo que podrá administrar todas las colecciones. Si quieres que sea el superadministrador de Payload, selecciónalo en el campo de rol del formulario inicial. Este reset no borra archivos que ya existan en Cloudflare R2; esos objetos deben eliminarse desde R2 si también quieres vaciar el bucket.
+| Variable | Valor predeterminado | Uso |
+|---|---|---|
+| `SEED_ADMIN_EMAIL` | `admin@plsalllamado.local` | Administrador técnico de Payload |
+| `SEED_ADMIN_PASSWORD` | `PLsAdmin2026!` | Contraseña de prueba |
+| `SEED_SUPER_ADMIN_EMAIL` | `superadmin@plsalllamado.local` | Superadministrador técnico de Payload |
+| `SEED_SUPER_ADMIN_PASSWORD` | `PLsSuper2026!` | Contraseña de prueba |
+| `SEED_PORTAL_EMAIL` | `administracion@plsalllamado.local` | Usuario del rol de administración |
+| `SEED_PORTAL_PASSWORD` | `PLsEquipo2026!` | Contraseña compartida de prueba para roles operativos |
 
-### Imágenes con Cloudflare R2
+Las contraseñas predeterminadas son solo para desarrollo. Deben cambiarse antes de utilizar el proyecto fuera de pruebas.
 
-Activa el almacenamiento después de crear un bucket y una API token con permisos `Object Read & Write` limitada a ese bucket. Define en `.env`:
+### Cloudflare R2
 
-```bash
+| Variable | Uso |
+|---|---|
+| `R2_ENABLED` | Debe ser `true` para cargar imágenes desde el portal |
+| `R2_ACCOUNT_ID` | Identificador de cuenta Cloudflare |
+| `R2_BUCKET` | Nombre exacto del bucket |
+| `R2_ENDPOINT` | Endpoint S3 de la cuenta, sin necesidad de URL pública |
+| `R2_REGION` | Normalmente `auto` |
+| `R2_ACCESS_KEY_ID` | Access key de la API S3 |
+| `R2_SECRET_ACCESS_KEY` | Secret key de la API S3 |
+| `R2_PREFIX` | Prefijo de objetos, normalmente `media` |
+
+Ejemplo:
+
+```env
 R2_ENABLED=true
 R2_ACCOUNT_ID=TU_ACCOUNT_ID
 R2_BUCKET=pls-al-llamado-media
@@ -106,54 +195,791 @@ R2_SECRET_ACCESS_KEY=TU_SECRET_ACCESS_KEY
 R2_PREFIX=media
 ```
 
-No se necesita una URL pública del bucket: la aplicación descarga las imágenes desde R2 en el servidor y las expone a través de `/api/media/:id`. En el portal operativo, quitar una imagen la elimina de la colección `media` y del bucket; seleccionar un archivo nuevo requiere eliminar primero el anterior.
+Las credenciales de R2 solo se leen en el servidor. No se deben colocar en componentes cliente ni en variables `NEXT_PUBLIC_*`.
 
-El seeder carga los registros iniciales de recursos, ayudas recibidas, necesidades, anuncios, boletines, distribuciones, comunicados, servicios y actividades. La aplicación pública no incluye datos simulados: su contenido proviene de Payload y queda vacío hasta ejecutar el seeder.
+## Sitio público
 
-Abre:
+Todas las páginas públicas leen información de Payload mediante [lib/public-api.ts](./lib/public-api.ts). Si la base no está disponible, se conserva la estructura visual y se muestran estados vacíos o información de disponibilidad.
 
-- Portal público: `http://localhost:3000`
-- Panel Payload: `http://localhost:3000/admin`
-- Portal operativo: `http://localhost:3000/equipo/login`
-- Salud del servicio: `http://localhost:3000/api/health`
+### Página inicial: `/`
 
-La base de datos debe estar configurada para mostrar y guardar información. Si no está disponible, la página conserva su estructura y muestra estados vacíos; los formularios informan que no pueden guardar la solicitud.
+La portada está enfocada en responder rápidamente:
 
-El seeder crea cuentas de prueba para `admin`, `super-admin` y cada rol operativo. Las contraseñas se controlan con las variables `SEED_*` del archivo `.env`; cambia estos valores antes de usar el proyecto fuera de pruebas.
+1. Qué tiene el centro.
+2. Qué necesita.
+3. Cómo ayudar.
+4. Cómo solicitar apoyo.
+5. Qué anuncios están vigentes.
 
-## API pública
+Incluye:
 
-| Método | Ruta | Uso |
+- Bloque principal **Nuestro centro de acopio PLs al llamado — Pereira**.
+- Dirección, horarios, estado y última actualización.
+- Botón **Quiero ayudar**, que lleva al formulario de ayuda.
+- Botón **Solicitar apoyo**, que lleva al formulario correspondiente.
+- Necesidades del día ubicadas arriba, antes de bloques secundarios.
+- Botón **Lo tengo** en cada necesidad para ofrecer una cantidad concreta.
+- Métricas de recibido, disponible y distribuido.
+- Anuncios destacados del centro.
+- Scroll interno cuando una lista supera el límite visual.
+- Actualización automática de datos sin recargar manualmente.
+
+### `/recursos`: Qué tenemos hoy
+
+Muestra dos bloques:
+
+- **Recursos disponibles**: nombre, categoría, cantidad, presentación o medida, estado, detalle y destacado.
+- **Ayudas recibidas**: aportes que ya llegaron al centro, con origen, cantidad, estado y fecha.
+
+Incluye:
+
+- Búsqueda por nombre, categoría o detalle.
+- Filtros por categoría.
+- En dispositivos móviles, los filtros se abren en un modal.
+- Estado disponible, limitado o agotado.
+- Indicador de información aproximada.
+- Scroll interno cuando hay muchos recursos o recepciones.
+
+### `/necesidades`: Qué necesitamos
+
+Cada tarjeta puede mostrar:
+
+- Prioridad crítica, alta o media.
+- Categoría.
+- Nombre de la necesidad.
+- Detalle público.
+- Cantidad aproximada.
+- Zona o destino general.
+- Estado destacado.
+- Botón **Lo tengo**.
+
+El modal **Lo tengo** valida:
+
+- Nombre de contacto.
+- Cantidad mínima de 1.
+- No permite cantidades negativas.
+- Aceptación del aviso de privacidad.
+- Mensaje opcional.
+- Botón de envío deshabilitado hasta completar lo necesario.
+
+### `/distribucion`: Seguimiento
+
+Muestra:
+
+- Resumen de rutas.
+- Conteo de entregadas, en ruta y pendientes.
+- Recurso, cantidad, presentación, destino general y equipo responsable.
+- Lista con scroll interno.
+- Carrusel de evidencias.
+- Evidencias relacionadas con una distribución o con otro registro operativo.
+- Imágenes y descripciones sin nombres de familias, menores ni ubicaciones sensibles.
+
+### `/ayudar`: Quiero ayudar
+
+Contiene un único formulario para:
+
+- Ofrecer recursos.
+- Ofrecer transporte.
+- Ofrecer tiempo o conocimientos.
+
+El formulario solicita:
+
+- Tipo de ayuda.
+- Nombre de contacto.
+- Qué se puede aportar.
+- Zona.
+- Cantidad aproximada.
+- Detalle.
+- Canal de contacto.
+- Aceptación de privacidad.
+
+También muestra **Próximas actividades**, donde aparecen jornadas de clasificación, carga, recepción, inventario y preparación de ayudas.
+
+### `/solicitar-apoyo`: Solicitar apoyo
+
+Permite registrar solicitudes generales de:
+
+- Recursos.
+- Transporte.
+
+Solicita zona, categoría, cantidad aproximada, detalle, contacto y canal de contacto. No se deben registrar nombres de familias, datos de niños, documentos ni ubicaciones sensibles.
+
+### `/comunicados`
+
+Publica información comunitaria moderada:
+
+- Mascotas encontradas.
+- Vivienda.
+- Objetos encontrados.
+- Apoyo comunitario.
+- Información general.
+
+Cada tarjeta puede incluir:
+
+- Imagen.
+- Categoría.
+- Título.
+- Descripción.
+- Zona general.
+- Canal o responsable.
+- Fecha.
+- Estado destacado.
+- Botón **Compartir**.
+
+La página pagina los comunicados de seis en seis y utiliza `navigator.share` cuando el dispositivo lo permite; si no, copia el enlace al portapapeles.
+
+### `/servicios`
+
+Directorio de capacidades de la comunidad:
+
+- Servicios gratuitos.
+- Servicios ofrecidos por la comunidad.
+- Servicios que todavía se necesitan.
+
+Incluye búsqueda por texto y filtro por categoría. Cada tarjeta muestra proveedor, zona o modalidad, costo o condición y un botón que lleva al formulario correspondiente.
+
+### `/boletin`
+
+Publica avances, registros y aprendizajes de la operación.
+
+Cada boletín es una tarjeta expandible con:
+
+- Categoría.
+- Fecha.
+- Título.
+- Resumen.
+- Contenido completo.
+- Equipo responsable.
+
+Cuando hay muchos boletines, el contenedor utiliza scroll interno.
+
+### Navegación y pie de página
+
+El sitio público tiene navegación separada por páginas. El ingreso del equipo no aparece como un bloque operativo dentro del contenido principal; queda disponible desde el footer.
+
+El footer mantiene:
+
+- Logo.
+- Identidad de PLs al llamado.
+- Enlaces públicos.
+- Acceso al portal operativo.
+- Información de privacidad y coordinación.
+
+## Portal operativo del equipo
+
+Entrada: `/equipo/login`.
+
+Es una interfaz independiente del administrador original de Payload. Tiene:
+
+- Login con credenciales de usuarios operativos.
+- Dashboard con indicadores y gráficas.
+- Navbar lateral fijo y colapsable.
+- Estado activo del módulo seleccionado.
+- Scroll automático hasta el módulo activo.
+- Formularios de creación y edición.
+- Modal responsive para editar.
+- Paginación de registros.
+- Acciones de editar y eliminar.
+- Estado y visibilidad visibles en cada registro.
+- Auditoría de quién registró y quién actualizó.
+- Mensajes de error en español.
+
+### Dashboard: `/equipo`
+
+El dashboard presenta:
+
+- Registros propios bajo cuidado.
+- Registros visibles o publicados.
+- Gráfica de registros por módulo.
+- Lectura rápida de visibilidad.
+- Tarjetas de acceso a los módulos disponibles.
+- Solicitudes compartidas para todo el equipo.
+- Conteos calculados con los registros realmente devueltos por Payload.
+
+El rol de administración puede consultar todos los módulos. Los demás roles ven sus registros propios, excepto Solicitudes y Evidencias, que son módulos compartidos.
+
+### Módulos operativos
+
+| Ruta | Módulo | Colección | Funcionalidad |
+|---|---|---|---|
+| `/equipo/tenemos` | Qué tenemos | `aid-intakes` | Registra ayudas recibidas, origen, cantidad, clasificación y visibilidad |
+| `/equipo/necesitamos` | Qué necesitamos | `needs` | Publica necesidades, categorías, prioridades, cantidades y zonas |
+| `/equipo/anuncios` | Anuncios del centro | `announcements` | Publica horarios, necesidades, rutas, información oficial e impacto |
+| `/equipo/boletin` | Boletín informativo | `bulletins` | Redacta resúmenes, contenido completo, categorías y estado |
+| `/equipo/servicios` | Servicios | `services` | Registra servicios gratuitos, ofrecidos o necesarios |
+| `/equipo/inventario` | Inventario | `resources` | Actualiza recursos disponibles, cantidad, unidad y estado |
+| `/equipo/distribucion` | Distribución | `distributions` | Registra salidas, destinos, equipos responsables y estado |
+| `/equipo/evidencias` | Evidencias | `distribution-evidence` | Sube imágenes y descripciones de distribuciones u otros registros |
+| `/equipo/comunicados` | Comunicados | `community-notices` | Publica comunicados con imágenes y categorías |
+| `/equipo/administracion` | Solicitudes | `support-requests` | Revisa, actualiza y elimina solicitudes públicas |
+
+### Reglas de formularios del portal
+
+- Los campos obligatorios se validan en frontend y backend.
+- El botón de crear permanece deshabilitado hasta completar el formulario.
+- El botón de guardar cambios se habilita únicamente si realmente se modificó un campo.
+- Las cantidades numéricas respetan mínimos definidos por cada colección.
+- Las fechas tienen valor predeterminado y se muestran con formato local.
+- Los selectores muestran un placeholder no seleccionable.
+- Las evidencias exigen distribución cuando el origen es “Salida de distribución”.
+- Las evidencias exigen una referencia cuando el origen es “Otro registro operativo”.
+- En edición de imágenes no se reemplaza directamente el archivo: primero se elimina el anterior y luego se carga uno nuevo.
+- Las listas usan paginación y/o scroll interno para no crecer indefinidamente.
+- Todas las respuestas de validación del portal se muestran en español.
+
+### Solicitudes compartidas
+
+Las solicitudes enviadas desde la página pública llegan a `/equipo/administracion`.
+
+Todos los roles operativos pueden:
+
+- Ver todas las solicitudes.
+- Abrir el detalle completo.
+- Ver si es **Necesitar ayuda** u **Ofrecer ayuda**.
+- Ver el tipo específico: recursos, oferta, transporte o voluntariado.
+- Cambiar estado.
+- Agregar notas internas.
+- Guardar cambios.
+- Eliminar una solicitud.
+
+Estados disponibles:
+
+- Pendiente.
+- En revisión.
+- Asignada.
+- Atendida.
+- Cerrada.
+
+Una solicitud que ya salió de **Pendiente** no puede volver a ese estado.
+
+## Panel administrativo de Payload
+
+Entrada: `/admin`.
+
+Es el administrador original de Payload y no se reemplaza por el portal operativo.
+
+Solo pueden entrar:
+
+- `admin`
+- `super-admin`
+
+Los roles operativos no pueden utilizar `/admin`, aunque tengan acceso al portal `/equipo`.
+
+El panel permite administrar directamente las colecciones y el global de configuración según los permisos técnicos definidos en [lib/access.ts](./lib/access.ts).
+
+## Roles y permisos
+
+### Roles técnicos de Payload
+
+| Rol | Entrada | Acceso |
 |---|---|---|
-| GET | `/api/public/overview` | Centro, métricas, recursos, ayudas recibidas, necesidades, anuncios, distribuciones y actividades |
-| GET | `/api/public/resources` | Inventario público |
+| `admin` | `/admin` | Todo el administrador técnico de Payload |
+| `super-admin` | `/admin` | Todo el administrador técnico de Payload |
+
+### Roles operativos
+
+| Rol | Módulo principal | Acceso adicional |
+|---|---|---|
+| `que-tenemos` | Qué tenemos | Solicitudes y Evidencias |
+| `que-necesitamos` | Qué necesitamos | Solicitudes y Evidencias |
+| `anuncios-boletin` | Anuncios y Boletín | Solicitudes y Evidencias |
+| `servicios` | Servicios | Solicitudes y Evidencias |
+| `inventario` | Inventario | Solicitudes y Evidencias |
+| `distribucion` | Distribución | Solicitudes y Evidencias |
+| `comunicados` | Comunicados | Solicitudes y Evidencias |
+| `administracion` | Todos los módulos | Acceso completo del portal |
+
+La API del portal vuelve a validar sesión, rol, módulo y pertenencia del registro en cada operación. No se confía únicamente en ocultar enlaces del frontend.
+
+## Colecciones y datos
+
+Todas las colecciones pasan por [withAuditFields](./lib/audit-fields.ts), que añade:
+
+- `registeredBy`: persona o proceso que creó el registro.
+- `registeredByUserId`: UUID del usuario creador cuando existe.
+- `updatedBy`: última persona que modificó el registro.
+- `updatedByUserId`: UUID del último usuario que actualizó.
+
+### Colecciones operativas
+
+| Colección | Uso | Datos principales |
+|---|---|---|
+| `aid-intakes` | Ayudas recibidas | Recurso, categoría, cantidad, unidad, origen, fecha, clasificación, visibilidad, destacado y observaciones |
+| `resources` | Inventario público | Recurso, categoría, cantidad, unidad, disponibilidad, visibilidad, destacado y notas |
+| `needs` | Necesidades | Título, detalle, categoría, cantidad, unidad, prioridad, estado, zona, publicación y destacado |
+| `distributions` | Salidas | Recurso, cantidad, unidad, fecha, destino general, organización, estado, visibilidad y observaciones |
+| `distribution-evidence` | Evidencias | Origen, distribución relacionada o referencia libre, imagen, título, descripción, estado y visibilidad |
+| `volunteer-activities` | Actividades | Título, descripción, fecha, horarios, lugar, cupos, inscritos, estado, visibilidad y responsable |
+| `support-requests` | Solicitudes | Tipo de ayuda, tipo de solicitud, categoría, zona, cantidad, detalle, contacto, estado, notas internas y privacidad |
+
+### Colecciones de comunicación y comunidad
+
+| Colección | Uso | Datos principales |
+|---|---|---|
+| `announcements` | Anuncios del centro | Título, contenido, tipo, estado, destacado, visibilidad, fecha de publicación y vencimiento |
+| `bulletins` | Boletines | Título, resumen, contenido completo, categoría, autor, estado, destacado, visibilidad y fecha |
+| `community-notices` | Comunicados | Título, descripción, categoría, imagen, zona, contacto, estado, destacado, visibilidad y fecha |
+| `services` | Servicios | Título, descripción, tipo, categoría, proveedor, zona o modalidad, costo, estado, visibilidad y fecha |
+
+### Colecciones técnicas
+
+| Colección o global | Uso |
+|---|---|
+| `users` | Usuarios técnicos y operativos, roles, estado activo y autenticación |
+| `media` | Metadatos de imágenes y claves de almacenamiento R2 |
+| `site-settings` | Nombre, dirección, horarios, estado, instrucciones para donar, mensaje principal, contacto y última actualización |
+
+Los nombres de familias, menores, documentos, teléfonos sensibles y ubicaciones exactas no se publican en los módulos públicos.
+
+## Flujos principales
+
+### Registrar una ayuda recibida
+
+1. El equipo recibe la donación.
+2. El rol **Qué tenemos** registra recurso, categoría, cantidad, unidad y origen.
+3. Se marca el estado de clasificación.
+4. Se decide si es visible y si debe quedar destacada.
+5. La información aparece en **Ayudas recibidas** de `/recursos`.
+
+### Actualizar inventario
+
+1. El rol **Inventario** registra o actualiza el recurso.
+2. Se define la cantidad aproximada y su presentación.
+3. Se selecciona Disponible, Limitado o Agotado.
+4. La página pública refleja el cambio automáticamente.
+
+### Publicar una necesidad
+
+1. El rol **Qué necesitamos** registra título, detalle, categoría y prioridad.
+2. Se define la zona o destino general.
+3. Se marca visible públicamente y, si corresponde, destacado.
+4. La necesidad aparece en la portada y en `/necesidades`.
+5. La comunidad puede usar **Lo tengo** para ofrecer una cantidad.
+
+### Recibir una solicitud pública
+
+1. Una persona usa `/ayudar`, `/solicitar-apoyo` o **Lo tengo**.
+2. El backend valida origen, tamaño, campos, privacidad y límite de solicitudes.
+3. Payload crea una solicitud en estado **Pendiente**.
+4. Todos los roles operativos la ven en Solicitudes.
+5. Un integrante la abre, agrega notas o cambia su estado.
+6. La información no se muestra como lista pública de nombres o contactos.
+
+### Registrar una distribución
+
+1. El rol Distribución registra recurso, cantidad, unidad, fecha, destino general y organización.
+2. Elige Pendiente, En ruta o Entregado.
+3. Puede crear evidencias desde el módulo separado.
+4. Las evidencias publicadas aparecen en el carrusel de `/distribucion`.
+
+### Publicar un comunicado con imagen
+
+1. El rol Comunicados abre `/equipo/comunicados`.
+2. Completa categoría, título, descripción, zona y contacto.
+3. Carga una imagen si corresponde.
+4. La imagen se optimiza y se guarda en R2.
+5. Al publicar y marcar visible, aparece en `/comunicados`.
+6. La comunidad puede compartir el enlace de la tarjeta.
+
+## Actualización automática
+
+La aplicación no depende de una recarga manual para reflejar cambios:
+
+- Las páginas públicas usan `noStore` y refresco del router cada 5 segundos.
+- El dashboard del equipo se actualiza automáticamente cada 5 segundos.
+- Los módulos operativos consultan su endpoint cada 5 segundos.
+- Solicitudes y listas se actualizan al recuperar el foco de la ventana.
+- Las acciones de crear, editar y eliminar actualizan la lista local inmediatamente.
+- Los endpoints públicos envían `Cache-Control: no-store`.
+
+La implementación actual utiliza polling controlado, no WebSockets. Es una actualización automática de pocos segundos sin añadir Redis, SSE ni infraestructura adicional.
+
+## API
+
+### Endpoints públicos
+
+Todos los endpoints de lectura consultan únicamente información visible y publicada cuando corresponde.
+
+| Método | Ruta | Respuesta |
+|---|---|---|
+| GET | `/api/public/overview` | Centro, métricas, recursos, ayudas, necesidades, anuncios, distribuciones, evidencias, actividades, comunicados, servicios y boletines |
+| GET | `/api/public/resources` | Recursos disponibles |
 | GET | `/api/public/aid-intakes` | Ayudas recibidas visibles |
 | GET | `/api/public/needs` | Necesidades activas |
 | GET | `/api/public/announcements` | Anuncios publicados |
 | GET | `/api/public/distributions` | Distribuciones visibles |
-| POST | `/api/public/support-request` | Solicitar recursos, transporte u ofrecer ayuda |
-| GET | `/api/health` | Estado del servicio y de la configuración de base de datos |
+| GET | `/api/public/community-notices` | Comunicados publicados |
+| GET | `/api/public/services` | Servicios publicados |
+| GET | `/api/public/bulletins` | Boletines publicados |
+| POST | `/api/public/support-request` | Crea una solicitud pública |
+| GET | `/api/health` | Estado del servicio y si `DATABASE_URL` está configurada |
 
-Payload expone también el API general bajo `/api` y el panel administra las colecciones con permisos por rol.
+### Endpoints del portal operativo
 
-## Flujo operativo
+Todos requieren sesión operativa y validación de rol.
 
-1. Se recibe una donación.
-2. Inventario la registra y clasifica.
-3. Se publica su disponibilidad.
-4. El equipo recibe o crea una necesidad.
-5. Coordinación aprueba la salida.
-6. Distribución registra destino, responsable y estado.
-7. Comunicaciones publica avances o anuncios.
+| Método | Ruta | Uso |
+|---|---|---|
+| POST | `/api/equipo/login` | Inicia sesión operativa |
+| POST | `/api/equipo/logout` | Cierra sesión operativa |
+| GET | `/api/equipo/:module` | Lista registros paginados del módulo |
+| POST | `/api/equipo/:module` | Crea un registro si el módulo lo permite |
+| PATCH | `/api/equipo/:module` | Actualiza un registro mediante su UUID |
+| DELETE | `/api/equipo/:module` | Elimina un registro mediante su UUID |
+| POST | `/api/equipo/media` | Optimiza y carga una imagen a R2 |
+| DELETE | `/api/equipo/media` | Elimina una imagen propia o autorizada de Payload y R2 |
+| GET | `/api/media/:id` | Sirve una imagen de R2 mediante su UUID |
 
-La primera versión no registra personas desaparecidas ni datos individuales de menores. Las solicitudes trabajan con zona, necesidad general y canal de contacto. Antes de usarla en producción se debe reemplazar la dirección y los canales de contacto de ejemplo, configurar un `PAYLOAD_SECRET` real y revisar el aviso de privacidad del equipo PLs al llamado.
+El módulo `administracion` corresponde internamente a **Solicitudes** y devuelve las solicitudes compartidas para todos los roles operativos.
 
-## Validación realizada
+### API de Payload
+
+Payload mantiene:
+
+- Panel: `/admin`
+- API general: `/api`
+- GraphQL habilitado por la configuración de Payload.
+
+Las reglas de acceso de Payload reservan la administración directa para `admin` y `super-admin`. El portal operativo utiliza endpoints propios y valida sus permisos antes de usar operaciones internas.
+
+## Imágenes y Cloudflare R2
+
+### Flujo de carga
+
+1. El usuario selecciona una imagen.
+2. El portal valida que sea JPG, PNG, WebP o GIF.
+3. Se rechazan archivos superiores a 10 MB.
+4. Sharp corrige la orientación.
+5. Sharp redimensiona sin ampliar y limita el borde máximo a 1600 px.
+6. La imagen se convierte a WebP con calidad 82.
+7. Se genera una clave con UUID dentro de `R2_PREFIX`.
+8. Se sube mediante una solicitud S3 firmada.
+9. Payload guarda los metadatos de la imagen.
+10. El frontend utiliza `/api/media/:id` para mostrarla.
+
+### Eliminación
+
+Al eliminar una imagen desde el portal:
+
+- Se elimina el registro de `media`.
+- Se elimina el objeto correspondiente de R2.
+- Si una operación falla, el backend intenta limpiar el objeto temporal creado.
+
+No se necesita una URL pública del bucket. El backend descarga los objetos de R2 y los sirve mediante una ruta propia con caché inmutable.
+
+### Permisos de medios
+
+- Comunicados: el rol Comunicados y Administración.
+- Evidencias: los roles operativos autorizados.
+- Los roles técnicos de Payload no usan el login del equipo.
+- Un usuario operativo no puede eliminar la imagen cargada por otra persona, excepto Administración.
+
+## Seeder de demostración
+
+El seeder se encuentra en:
+
+- [scripts/seed.ts](./scripts/seed.ts)
+- [scripts/seed-data.ts](./scripts/seed-data.ts)
+
+Carga o actualiza datos de demostración realistas para que la aplicación no aparezca vacía:
+
+- 28 recursos.
+- 6 ayudas recibidas.
+- 16 necesidades.
+- 13 anuncios.
+- 13 distribuciones.
+- 13 evidencias.
+- 10 comunicados.
+- 10 servicios.
+- 8 boletines.
+- 10 actividades.
+- 8 solicitudes internas.
+- Usuarios de Payload y un usuario por rol operativo.
+- Medios iniciales para comunicados, vivienda y evidencias.
+
+El seeder es idempotente:
+
+- Busca registros por campos de referencia.
+- Actualiza los existentes.
+- Evita duplicar registros al ejecutarse nuevamente.
+- Corrige registros antiguos cuyo auditor aparezca como `Seeder inicial PLs al llamado`.
+- Usa el actor de demostración `Administrador de prueba`.
+
+Ejecutar:
 
 ```bash
-pnpm typecheck
+pnpm payload:seed
+```
+
+### Usuarios de prueba
+
+#### Payload
+
+| Rol | Correo | Contraseña |
+|---|---|---|
+| Administrador | `admin@plsalllamado.local` | `PLsAdmin2026!` |
+| Superadministrador | `superadmin@plsalllamado.local` | `PLsSuper2026!` |
+
+#### Equipo operativo
+
+Todos los siguientes usuarios usan `PLsEquipo2026!` salvo que cambies `SEED_PORTAL_PASSWORD`:
+
+| Rol | Correo |
+|---|---|
+| Administración | `administracion@plsalllamado.local` |
+| Qué tenemos | `que-tenemos@plsalllamado.local` |
+| Qué necesitamos | `que-necesitamos@plsalllamado.local` |
+| Anuncios y boletín | `anuncios@plsallamado.local` |
+| Servicios | `servicios@plsallamado.local` |
+| Inventario | `inventario@plsalllamado.local` |
+| Distribución | `distribucion@plsallamado.local` |
+| Comunicados | `comunicados@plsallamado.local` |
+
+## UUID y migraciones
+
+Payload está configurado con:
+
+```ts
+db: postgresAdapter({
+  idType: 'uuid',
+})
+```
+
+Los documentos nuevos utilizan UUID. Las evidencias embebidas heredadas de distribuciones también se normalizan a UUID.
+
+### Generar tipos
+
+```bash
+pnpm payload:generate
+```
+
+### Crear y aplicar migraciones
+
+En producción:
+
+```bash
+pnpm payload:migrate:create
+pnpm payload:migrate
+```
+
+En desarrollo, el esquema se sincroniza con `push` al iniciar, por lo que no se debe mezclar ese flujo con migraciones productivas sin revisar la base.
+
+### Migrar una base existente a UUID
+
+Este proceso conserva registros, pero modifica tipos y relaciones. Primero crea un respaldo:
+
+```bash
+UUID_MIGRATION_CONFIRM=YES pnpm payload:ids:uuid
+pnpm payload:generate
+pnpm payload:migrate
+```
+
+El script:
+
+- Convierte IDs principales a UUID.
+- Actualiza claves foráneas.
+- Actualiza relaciones de Payload.
+- Regenera IDs de sesiones y evidencias anidadas.
+- Revisa relaciones huérfanas.
+- Revierte la transacción si encuentra una inconsistencia.
+
+### Reiniciar la base local
+
+Esta acción elimina todas las tablas y datos de PostgreSQL. No elimina objetos de R2:
+
+```bash
+RESET_DATABASE_CONFIRM=YES pnpm payload:reset
+pnpm payload:generate
+pnpm payload:seed
+```
+
+Usarlo únicamente en desarrollo y después de revisar `DATABASE_URL`.
+
+## Seguridad y privacidad
+
+### Validación de entradas
+
+- El backend valida todos los campos, no solo el frontend.
+- Se rechazan cuerpos JSON inválidos.
+- Se limitan los tamaños de los cuerpos.
+- Se limitan longitudes de texto por campo.
+- Se validan UUID antes de buscar, editar o eliminar registros.
+- Se valida el origen de las solicitudes.
+- Se normalizan valores de texto antes de guardarlos.
+- No se interpolan valores de usuario directamente en consultas SQL.
+- Payload y PostgreSQL utilizan parámetros y relaciones controladas.
+
+### Límites principales
+
+| Flujo | Límite |
+|---|---:|
+| Login operativo | 16 KB |
+| Solicitud pública | 32 KB |
+| CRUD JSON del portal | 512 KB |
+| Imagen del portal | 10 MB |
+| Texto de título/nombre | 160 caracteres |
+| Texto descriptivo | Según campo, normalmente 2.000 a 5.000 caracteres |
+
+### Rate limiting
+
+- Solicitudes públicas: 10 por dirección en 15 minutos.
+- Login por IP: 12 intentos en 15 minutos.
+- Login por cuenta: 8 intentos en 15 minutos.
+- Payload Auth: máximo 5 intentos y bloqueo durante 15 minutos.
+- Tokens de sesión: expiración configurada en 2 horas.
+- Cookies: `SameSite=Strict` y `Secure` en producción.
+
+### Privacidad
+
+La plataforma no tiene módulo de personas desaparecidas.
+
+No se deben registrar públicamente:
+
+- Nombres de familias receptoras.
+- Datos de niñas o niños.
+- Documentos de identidad.
+- Teléfonos personales en comunicados públicos.
+- Direcciones exactas de personas.
+- Información médica individual.
+- Detalles que permitan identificar a una familia vulnerable.
+
+Las distribuciones utilizan destinos generales, barrios, zonas, albergues u organizaciones.
+
+## Comandos de desarrollo
+
+Todos los comandos de proyecto se ejecutan con pnpm:
+
+```bash
+pnpm install                  # Instala dependencias
+pnpm dev                      # Servidor de desarrollo
+pnpm build                    # Compilación de producción
+pnpm start                    # Sirve la compilación
+pnpm lint                     # Ejecuta ESLint
+pnpm typecheck                # Comprueba TypeScript
+pnpm payload:generate         # Genera payload-types.ts
+pnpm payload:migrate:create   # Crea una migración
+pnpm payload:migrate          # Ejecuta migraciones
+pnpm payload:seed             # Carga datos y usuarios de prueba
+pnpm payload:ids:uuid         # Migra una base existente a UUID
+pnpm payload:reset            # Elimina la base con confirmación explícita
+```
+
+El proyecto contiene:
+
+- [pnpm-lock.yaml](./pnpm-lock.yaml)
+- [pnpm-workspace.yaml](./pnpm-workspace.yaml)
+- `packageManager: pnpm@9.15.4`
+- Script `preinstall` que bloquea otros gestores.
+
+No se debe crear ni agregar `package-lock.json`, `yarn.lock`, `bun.lock` o archivos equivalentes.
+
+## Producción
+
+Antes de publicar:
+
+1. Cambia todos los correos y contraseñas de prueba.
+2. Define un `PAYLOAD_SECRET` largo y aleatorio.
+3. Configura PostgreSQL administrado.
+4. Configura R2 con una API limitada al bucket.
+5. Define `NEXT_PUBLIC_SERVER_URL` con HTTPS.
+6. Revisa CORS y CSRF.
+7. Crea un respaldo de la base.
+8. Genera y ejecuta migraciones.
+9. Ejecuta el seeder solo si realmente quieres datos iniciales.
+10. Revisa el aviso de privacidad y los canales de contacto.
+11. Verifica que las imágenes no contengan datos sensibles.
+12. Prueba cada rol con una cuenta independiente.
+13. Comprueba que `/admin` no sea accesible para roles operativos.
+14. Comprueba que el portal operativo no acepte usuarios `admin` o `super-admin`.
+15. Revisa logs, rate limiting y permisos de R2.
+
+Comandos de compilación:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm payload:generate
+pnpm payload:migrate
+pnpm build
+pnpm start
+```
+
+## Solución de problemas
+
+### La página aparece vacía
+
+Comprueba:
+
+1. PostgreSQL está encendido.
+2. `DATABASE_URL` apunta a la base correcta.
+3. Ejecutaste `pnpm payload:seed`.
+4. Los registros tienen `publicVisible=true`.
+5. Los anuncios, boletines, servicios y comunicados tienen `status=publicado`.
+6. El endpoint `/api/health` responde correctamente.
+
+### El seeder no conecta a PostgreSQL
+
+Revisa la conexión:
+
+```bash
+docker compose ps
+docker compose logs postgres
+```
+
+Después valida `DATABASE_URL` y vuelve a ejecutar:
+
+```bash
+pnpm payload:seed
+```
+
+### El portal no permite subir imágenes
+
+Comprueba:
+
+- `R2_ENABLED=true`.
+- El bucket existe.
+- El endpoint no incluye el nombre del bucket en una ruta duplicada.
+- La API tiene permisos Object Read & Write sobre el bucket.
+- Las claves R2 son correctas.
+- El archivo es JPG, PNG, WebP o GIF.
+- El archivo pesa menos de 10 MB.
+
+### El administrador Payload no carga
+
+Comprueba:
+
+- Que el primer usuario tenga rol `admin` o `super-admin`.
+- Que `PAYLOAD_SECRET` esté definido.
+- Que la base tenga el esquema actualizado.
+- Que no se esté intentando ingresar con un rol operativo.
+
+### Un cambio no aparece inmediatamente
+
+La aplicación actualiza automáticamente aproximadamente cada 5 segundos. También puedes cambiar de página o volver a enfocar la ventana. Comprueba que:
+
+- El registro esté publicado.
+- `publicVisible` esté activo.
+- No tenga estado archivado o cerrado cuando la vista lo excluya.
+- El seeder o el panel hayan terminado sin errores.
+
+## Validación del proyecto
+
+La validación estándar es:
+
+```bash
 pnpm lint
+pnpm typecheck
 pnpm build
 ```
 
-La compilación reconoce la página pública, `/admin`, el API de Payload y los endpoints públicos. El seeder también crea o actualiza las cuentas iniciales de Payload y del equipo operativo; sus credenciales pueden definirse con las variables `SEED_*` en `.env`.
+La compilación debe reconocer:
+
+- La portada pública.
+- Todas las rutas públicas.
+- El panel original de Payload.
+- El API general de Payload.
+- Los endpoints públicos.
+- El login y CRUD del portal operativo.
+- El servidor de medios.
+
+Última actualización documental: agosto de 2026.
+

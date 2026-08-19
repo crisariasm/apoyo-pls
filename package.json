@@ -1,0 +1,50 @@
+{
+  "name": "pls-al-llamado",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "preinstall": "node scripts/ensure-pnpm.mjs",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "payload": "payload",
+    "payload:generate": "payload generate:types",
+    "payload:migrate": "payload migrate",
+    "payload:migrate:create": "payload migrate:create",
+    "payload:ids:uuid": "node --env-file=.env --import tsx/esm scripts/migrate-ids-to-uuid.ts",
+    "payload:reset": "node --env-file=.env --import tsx/esm scripts/reset-database.ts",
+    "payload:seed": "node --env-file=.env --import tsx/esm scripts/seed.ts"
+  },
+  "dependencies": {
+    "@payloadcms/db-postgres": "^3.86.0",
+    "@payloadcms/next": "^3.86.0",
+    "@payloadcms/richtext-lexical": "^3.86.0",
+    "graphql": "^16.11.0",
+    "next": "15.4.11",
+    "payload": "^3.86.0",
+    "pg": "^8.16.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "sharp": "^0.34.3"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "15.4.11",
+    "@types/node": "^22.15.30",
+    "@types/pg": "^8.15.4",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.6",
+    "eslint": "^9.28.0",
+    "eslint-config-next": "15.4.11",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.59.3",
+    "tsx": "^4.19.4"
+  },
+  "engines": {
+    "node": ">=20.9.0",
+    "pnpm": ">=9.15.4"
+  }
+}

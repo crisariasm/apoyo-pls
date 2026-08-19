@@ -1,0 +1,17 @@
+export const resourceCategories = [
+  { label: 'Alimentos', value: 'alimentos' },
+  { label: 'Agua', value: 'agua' },
+  { label: 'Kits de aseo', value: 'aseo' },
+  { label: 'Medicamentos y primeros auxilios', value: 'salud' },
+  { label: 'Ropa y cobijas', value: 'abrigo' },
+  { label: 'Elementos para bebés', value: 'bebes' },
+  { label: 'Herramientas', value: 'herramientas' },
+  { label: 'Elementos para mascotas', value: 'mascotas' },
+  { label: 'Cocina', value: 'cocina' },
+  { label: 'Higiene personal', value: 'higiene' },
+  { label: 'Transporte', value: 'transporte' },
+  { label: 'Alojamiento', value: 'alojamiento' },
+  { label: 'Energía e iluminación', value: 'energia' },
+  { label: 'Materiales de construcción', value: 'construccion' },
+  { label: 'Otros', value: 'otros' },
+] as const

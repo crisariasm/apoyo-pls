@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
 import { isCoordinator } from '../lib/access'
+import { isValidPhone } from '../lib/public-request-validation'
 
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
@@ -21,7 +22,7 @@ export const SiteSettings: GlobalConfig = {
     ] },
     { name: 'donationInstructions', type: 'textarea', label: 'Cómo donar', required: true, maxLength: 5000, defaultValue: 'Trae los recursos limpios, separados y marcados por categoría. Antes de salir, revisa la lista de necesidades urgentes.' },
     { name: 'heroMessage', type: 'textarea', label: 'Mensaje principal', required: true, maxLength: 3000, defaultValue: 'Estamos coordinando la recepción, organización y distribución de ayudas para las comunidades afectadas.' },
-    { name: 'contactChannel', type: 'text', label: 'Canal de contacto', required: true, maxLength: 200, defaultValue: 'WhatsApp del equipo PLs al llamado · pendiente de confirmar' },
+    { name: 'phone', type: 'text', label: 'Teléfono del centro', required: true, maxLength: 20, defaultValue: '300 000 0000', validate: (value: unknown) => isValidPhone(value) ? true : 'Escribe un número de teléfono válido.' },
     { name: 'lastOperationalUpdate', type: 'date', label: 'Última actualización operativa' },
   ],
 }

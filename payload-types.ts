@@ -630,10 +630,37 @@ export interface SupportRequest {
   requestType: 'recursos' | 'oferta' | 'transporte' | 'voluntariado';
   category: string;
   zone: string;
-  quantity?: string | null;
+  /**
+   * Opcional. Usa solo números enteros positivos.
+   */
+  quantity?: number | null;
+  /**
+   * Se necesita cuando indicas una cantidad.
+   */
+  quantityUnit?:
+    | (
+        | 'unidades'
+        | 'cajas'
+        | 'kits'
+        | 'paquetes'
+        | 'bultos'
+        | 'pares'
+        | 'pacas'
+        | 'canecas'
+        | 'litros'
+        | 'turnos'
+        | 'horas'
+        | 'recorridos'
+        | 'cupos'
+        | 'jornadas'
+      )
+    | null;
   description: string;
   contactName: string;
-  contactChannel: string;
+  /**
+   * Número para coordinar la ayuda. No se publica.
+   */
+  phone: string;
   status: 'pendiente' | 'en-revision' | 'asignada' | 'atendida' | 'cerrada';
   internalNotes?: string | null;
   privacyAccepted: boolean;
@@ -1034,9 +1061,10 @@ export interface SupportRequestsSelect<T extends boolean = true> {
   category?: T;
   zone?: T;
   quantity?: T;
+  quantityUnit?: T;
   description?: T;
   contactName?: T;
-  contactChannel?: T;
+  phone?: T;
   status?: T;
   internalNotes?: T;
   privacyAccepted?: T;
@@ -1127,7 +1155,7 @@ export interface SiteSetting {
   centerStatus: 'abierto' | 'limitado' | 'cerrado';
   donationInstructions: string;
   heroMessage: string;
-  contactChannel: string;
+  phone: string;
   lastOperationalUpdate?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -1143,7 +1171,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   centerStatus?: T;
   donationInstructions?: T;
   heroMessage?: T;
-  contactChannel?: T;
+  phone?: T;
   lastOperationalUpdate?: T;
   updatedAt?: T;
   createdAt?: T;

@@ -36,6 +36,12 @@ function value(value: unknown) {
   return String(value)
 }
 
+function quantityValue(record: RecordData) {
+  if (record.quantity === null || record.quantity === undefined || record.quantity === '') return 'Sin cantidad'
+  const unit = typeof record.quantityUnit === 'string' && record.quantityUnit ? ` ${record.quantityUnit}` : ''
+  return `${String(record.quantity)}${unit}`
+}
+
 function dateValue(value: unknown) {
   if (!value) return 'Sin fecha'
   const date = new Date(String(value))
@@ -213,9 +219,9 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
             <Detail label="Tipo de ayuda" value={label(helpType(selected), helpTypeLabels)} />
             <Detail label="Categoría" value={selected.category} />
             <Detail label="Zona o barrio" value={selected.zone} />
-            <Detail label="Cantidad aproximada" value={selected.quantity} />
+            <Detail label="Cantidad aproximada" value={quantityValue(selected)} />
             <Detail label="Nombre de contacto" value={selected.contactName} />
-            <Detail label="Canal de contacto" value={selected.contactChannel} />
+            <Detail label="Teléfono" value={selected.phone} />
             <Detail label="Aceptó privacidad" value={selected.privacyAccepted} />
             <Detail label="Reportada" value={`${relativeElapsed(selected.createdAt, now)} · ${dateValue(selected.createdAt)}`} />
             <Detail label="Registrada por" value={selected.registeredBy || 'Formulario público'} />

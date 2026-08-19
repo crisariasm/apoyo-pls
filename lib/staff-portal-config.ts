@@ -336,7 +336,7 @@ export const portalModules: PortalModule[] = [
     collection: 'support-requests',
     roles: ['que-tenemos', 'que-necesitamos', 'anuncios', 'boletin', 'servicios', 'inventario', 'distribucion', 'comunicados', 'administracion'],
     titleField: 'requestType',
-    summaryFields: ['category', 'zone', 'status', 'contactName'],
+    summaryFields: ['category', 'zone', 'status', 'contactName', 'phone'],
     canCreate: false,
     canDelete: true,
     fields: [

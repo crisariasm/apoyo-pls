@@ -258,6 +258,7 @@ El modal **Lo tengo** valida:
 - Nombre de contacto.
 - Cantidad mínima de 1.
 - No permite cantidades negativas.
+- Número de teléfono válido.
 - Aceptación del aviso de privacidad.
 - Mensaje opcional.
 - Botón de envío deshabilitado hasta completar lo necesario.
@@ -288,9 +289,10 @@ El formulario solicita:
 - Nombre de contacto.
 - Qué se puede aportar.
 - Zona.
-- Cantidad aproximada.
+- Cantidad aproximada como número entero positivo.
+- Unidad de la cantidad, cuando se informa una cantidad.
 - Detalle.
-- Canal de contacto.
+- Número de teléfono.
 - Aceptación de privacidad.
 
 También muestra **Próximas actividades**, donde aparecen jornadas de clasificación, carga, recepción, inventario y preparación de ayudas.
@@ -302,7 +304,7 @@ Permite registrar solicitudes generales de:
 - Recursos.
 - Transporte.
 
-Solicita zona, categoría, cantidad aproximada, detalle, contacto y canal de contacto. No se deben registrar nombres de familias, datos de niños, documentos ni ubicaciones sensibles.
+Solicita zona, categoría, cantidad aproximada como número entero, unidad, detalle, nombre y número de teléfono. La cantidad y su unidad son opcionales, pero deben llegar juntas. No se deben registrar nombres de familias, datos de niños, documentos ni ubicaciones sensibles.
 
 ### `/comunicados`
 

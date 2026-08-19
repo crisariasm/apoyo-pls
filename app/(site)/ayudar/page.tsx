@@ -13,7 +13,7 @@ export default async function HelpPage() {
   return (
     <main className="site-shell">
       <SiteHeader />
-      <PageIntro eyebrow="Quiero ayudar" title="Conecta tu ayuda con una necesidad real" description="Ofrece recursos, transporte o conocimientos. El equipo de PLs al llamado revisará tu propuesta y te contactará por el canal que indiques." tone="green" />
+      <PageIntro eyebrow="Quiero ayudar" title="Conecta tu ayuda con una necesidad real" description="Ofrece recursos, transporte o conocimientos. El equipo de PLs al llamado revisará tu propuesta y te contactará al teléfono que indiques." tone="green" />
 
       <section className="form-page page-section" id="formulario-ayuda">
         <div className="form-page-inner">

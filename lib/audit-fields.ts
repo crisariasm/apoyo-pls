@@ -18,7 +18,6 @@ const maxLengths: Record<string, number> = {
   location: 160,
   contact: 200,
   contactName: 160,
-  contactChannel: 200,
   author: 160,
   startTime: 20,
   endTime: 20,

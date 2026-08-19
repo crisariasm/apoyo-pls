@@ -41,7 +41,7 @@ const emptyOverview: PublicOverview = {
     hours: 'Horario pendiente de actualización',
     status: 'pendiente',
     lastUpdate: 'Sin actualización disponible',
-    contact: 'Canal de contacto pendiente de actualización',
+    contact: 'Teléfono del centro pendiente de actualización',
   },
   metrics: { received: '0', available: '0', distributed: '0', volunteers: '0' },
   resources: [], aidIntakes: [], needs: [], announcements: [], distributions: [], evidences: [], activities: [], communityNotices: [], services: [], bulletins: [], mode: 'unavailable',
@@ -212,7 +212,7 @@ export async function getOverview(): Promise<PublicOverview> {
 
     return {
       center: {
-        name: text(settingsData.centerName, emptyOverview.center.name), address: text(settingsData.address, emptyOverview.center.address), hours: text(settingsData.hours, emptyOverview.center.hours), status: text(settingsData.centerStatus, emptyOverview.center.status), lastUpdate: dateTimeLabel(settingsData.lastOperationalUpdate, emptyOverview.center.lastUpdate), contact: text(settingsData.contactChannel, emptyOverview.center.contact),
+        name: text(settingsData.centerName, emptyOverview.center.name), address: text(settingsData.address, emptyOverview.center.address), hours: text(settingsData.hours, emptyOverview.center.hours), status: text(settingsData.centerStatus, emptyOverview.center.status), lastUpdate: dateTimeLabel(settingsData.lastOperationalUpdate, emptyOverview.center.lastUpdate), contact: text(settingsData.phone, emptyOverview.center.contact),
       },
       resources: resourceDocs.map((resource) => ({ id: text(resource.id, crypto.randomUUID()), name: text(resource.name, 'Recurso sin nombre'), category: categoryLabel(resource.category), quantity: Number(resource.quantity || 0), unit: text(resource.unit, 'unidades'), status: text(resource.status, 'disponible'), detail: text(resource.notes, 'Existencia registrada por el equipo de inventario.'), featured: resource.featured === true })),
       aidIntakes: aidIntakeDocs.map((intake) => ({ id: text(intake.id, crypto.randomUUID()), resource: text(intake.resourceName, 'Ayuda recibida'), category: categoryLabel(intake.category), quantity: `${intake.quantity || 0} ${text(intake.unit, 'unidades')}`, sourceType: intakeSourceLabel(intake.sourceType), sourceReference: text(intake.sourceReference, 'Origen registrado por el equipo'), status: intakeStatusLabel(intake.status), receivedAt: dateTimeLabel(intake.receivedAt, 'Recibida recientemente'), publicVisible: intake.publicVisible !== false, notes: text(intake.notes, 'Ayuda registrada por el equipo de inventario.'), featured: intake.featured === true })),

@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { PortalField, PortalModule } from '../../../../lib/staff-portal-config'
 import { getPortalFieldMaxLength, normalizePortalData, validatePortalData } from '../../../../lib/staff-portal-validation'
@@ -146,6 +146,9 @@ export function StaffModulePanel({
   const [saving, setSaving] = useState(false)
   const [pageLoading, setPageLoading] = useState(false)
   const [removedMediaIds, setRemovedMediaIds] = useState<string[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const createCardRef = useRef<HTMLElement | null>(null)
+  const recordsCardRef = useRef<HTMLElement | null>(null)
 
   const formComplete = useMemo(() => formIsComplete(module, form), [module, form])
   const formChanged = useMemo(() => {
@@ -193,6 +196,15 @@ export function StaffModulePanel({
     setOriginalForm(null)
     setRemovedMediaIds([])
     clearFeedback()
+    setCreateOpen(true)
+    window.requestAnimationFrame(() => createCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  function toggleCreate() {
+    const nextOpen = !createOpen
+    if (nextOpen) clearFeedback()
+    setCreateOpen(nextOpen)
+    if (nextOpen) window.requestAnimationFrame(() => createCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
   function beginEdit(record: RecordData) {
@@ -330,6 +342,8 @@ export function StaffModulePanel({
         setRemovedMediaIds([])
         await loadPage(1)
         setMessage('Registro creado y listo para revisión.')
+        setCreateOpen(false)
+        window.requestAnimationFrame(() => recordsCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
       }
     } catch (error) {
       if (!recordSaved) await Promise.all(createdMediaIds.map((id) => deleteMedia(id).catch(() => undefined)))
@@ -363,14 +377,20 @@ export function StaffModulePanel({
   return (
     <>
       <div className="staff-module-layout">
-        <section className="staff-editor-card" aria-labelledby="staff-editor-title">
+        <section ref={createCardRef} className={`staff-editor-card${module.canCreate !== false ? ' is-create-card' : ''}${createOpen ? ' is-create-open' : ''}`} aria-labelledby="staff-editor-title">
           <div className="staff-card-heading">
             <div><p className="staff-eyebrow">Captura de información</p><h2 id="staff-editor-title">{module.canCreate === false ? 'Revisión de solicitudes' : 'Nuevo registro'}</h2></div>
             {module.canCreate !== false && <button className="staff-outline-button" type="button" onClick={beginCreate}>Limpiar</button>}
           </div>
-          {module.canCreate === false ? <p className="staff-form-help">Estas solicitudes llegan desde la página pública. Selecciona un registro para actualizar su estado o agregar notas internas.</p> : <form className="staff-record-form" onSubmit={save}><RecordFields module={module} form={form} onChange={updateField} onRemoveMedia={rememberRemovedMedia} /><Feedback error={error} message={message} /><button className="staff-primary-button" type="submit" disabled={saving || !canSubmit}>{saving ? 'Guardando…' : 'Crear registro'}</button></form>}
+          {module.canCreate === false ? <p className="staff-form-help">Estas solicitudes llegan desde la página pública. Selecciona un registro para actualizar su estado o agregar notas internas.</p> : <>
+            <button className="staff-mobile-create-toggle" type="button" aria-expanded={createOpen} aria-controls={`staff-create-form-${module.slug}`} onClick={toggleCreate}><span>{createOpen ? 'Ocultar formulario' : `Crear ${module.label.toLocaleLowerCase('es-CO')}`}</span><strong aria-hidden="true">{createOpen ? '−' : '+'}</strong></button>
+            <div className="staff-create-form-shell" id={`staff-create-form-${module.slug}`}>
+              <form className="staff-record-form" onSubmit={save}><RecordFields module={module} form={form} onChange={updateField} onRemoveMedia={rememberRemovedMedia} /><Feedback error={error} message={message} /><button className="staff-primary-button" type="submit" disabled={saving || !canSubmit}>{saving ? 'Guardando…' : 'Crear registro'}</button></form>
+            </div>
+            {!createOpen && message && <p className="staff-form-success staff-mobile-create-result" role="status">{message}</p>}
+          </>}
         </section>
-        <section className="staff-records-card" aria-labelledby="staff-records-title">
+        <section ref={recordsCardRef} className="staff-records-card" aria-labelledby="staff-records-title">
           <div className="staff-card-heading">
             <div><p className="staff-eyebrow">Registros guardados</p><h2 id="staff-records-title">{totalDocs} elementos</h2></div>
           </div>

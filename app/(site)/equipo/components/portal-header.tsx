@@ -159,14 +159,27 @@ export function PortalHeader({ name, userId, role, modules }: { name: string; us
     window.location.assign('/equipo/login')
   }
 
+  function toggleSidebar() {
+    if (window.matchMedia('(max-width: 720px)').matches) {
+      setMobileOpen(false)
+      return
+    }
+    setCollapsed((value) => !value)
+  }
+
   return (
     <>
       {requestAlert && <div className={`staff-request-alert is-${requestAlert.kind}`} role="alert"><span className="staff-request-alert-mark" aria-hidden="true" /><div><strong>{requestAlert.title}</strong><p>{requestAlert.message}</p></div><Link href="/equipo/administracion" onClick={() => setRequestAlert(null)}>Ver solicitudes</Link><button type="button" aria-label="Cerrar aviso" onClick={() => setRequestAlert(null)}>×</button></div>}
-      <button className="staff-mobile-toggle" type="button" aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>
-        <span />
-        <span />
-        <span />
-      </button>
+      <div className={`staff-mobile-topbar${mobileOpen ? ' is-menu-open' : ''}`}>
+        <button className="staff-mobile-toggle" type="button" aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>
+          <span className="staff-mobile-arrow-icon" aria-hidden="true">→</span>
+          {pendingRequests > 0 && <b className="staff-mobile-request-count" aria-label={`${pendingRequests} solicitudes pendientes`}>{pendingRequests > 99 ? '99+' : pendingRequests}</b>}
+        </button>
+        <Link className="staff-mobile-brand" href="/equipo" aria-label="Ir al inicio del equipo de PLs al llamado" onClick={() => setMobileOpen(false)}>
+          <Image src="/logo-PLs-rosado.png" alt="PLs al llamado" width={34} height={34} priority />
+          <span className="staff-mobile-brand-copy"><strong>PLs al llamado</strong><small>Portal operativo</small></span>
+        </Link>
+      </div>
       {mobileOpen && <button className="staff-sidebar-overlay" type="button" aria-label="Cerrar menú" onClick={() => setMobileOpen(false)} />}
       <aside className={`staff-sidebar${collapsed ? ' is-collapsed' : ''}${mobileOpen ? ' is-open' : ''}`}>
         <div className="staff-sidebar-brand">
@@ -174,7 +187,7 @@ export function PortalHeader({ name, userId, role, modules }: { name: string; us
             <Image src="/logo-PLs-rosado.png" alt="PLs al llamado" width={42} height={42} priority />
             <span className="staff-brand-copy"><strong>PLs al llamado</strong><small>Portal operativo</small></span>
           </Link>
-          <button className="staff-sidebar-collapse" type="button" aria-label={collapsed ? 'Expandir navegación' : 'Contraer navegación'} aria-pressed={collapsed} onClick={() => setCollapsed((value) => !value)}>
+          <button className="staff-sidebar-collapse" type="button" aria-label={mobileOpen ? 'Cerrar menú de sesiones' : collapsed ? 'Expandir navegación' : 'Contraer navegación'} aria-pressed={collapsed} onClick={toggleSidebar}>
             <span aria-hidden="true">{collapsed ? '→' : '←'}</span>
           </button>
         </div>

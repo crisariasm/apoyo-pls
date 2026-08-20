@@ -87,8 +87,7 @@
   white-space: nowrap;
 }
 
-.staff-sidebar-collapse,
-.staff-mobile-toggle {
+.staff-sidebar-collapse {
   display: grid;
   place-items: center;
   border: 1px solid #cfe0d2;
@@ -108,9 +107,7 @@
 }
 
 .staff-sidebar-collapse:hover,
-.staff-sidebar-collapse:focus-visible,
-.staff-mobile-toggle:hover,
-.staff-mobile-toggle:focus-visible { border-color: #95bca0; background: #fff; }
+.staff-sidebar-collapse:focus-visible { border-color: #95bca0; background: #fff; }
 
 .staff-sidebar.is-collapsed .staff-sidebar-brand > a { justify-content: center; }
 .staff-sidebar.is-collapsed .staff-brand-copy { display: none; }
@@ -286,6 +283,9 @@
 .staff-portal:has(.staff-sidebar.is-collapsed) .staff-main { margin-left: var(--staff-sidebar-compact); }
 .staff-mobile-toggle,
 .staff-sidebar-overlay { display: none; }
+.staff-mobile-topbar { display: none; }
+.staff-mobile-create-toggle,
+.staff-mobile-create-result { display: none; }
 
 .staff-welcome {
   position: relative;
@@ -572,10 +572,35 @@
   .staff-sidebar.is-collapsed .staff-sidebar-footer button { padding-inline: 10px; }
   .staff-sidebar.is-open .staff-nav-count { position: static; min-width: 22px; height: 20px; padding: 0 5px; font-size: 10px; }
   .staff-sidebar-overlay { position: fixed; z-index: 35; inset: 0; display: block; border: 0; background: rgba(17, 43, 34, .42); cursor: pointer; }
-  .staff-mobile-toggle { position: fixed; z-index: 50; top: 15px; left: 16px; width: 42px; height: 42px; gap: 4px; background: rgba(255, 253, 249, .94); box-shadow: 0 7px 22px rgba(30, 72, 53, .12); }
-  .staff-mobile-toggle span { display: block; width: 17px; height: 2px; border-radius: 10px; background: var(--staff-green); }
+  .staff-mobile-topbar { position: fixed; z-index: 30; top: 0; right: 0; left: 0; display: flex; height: 70px; align-items: center; gap: 9px; padding: 9px 10px; border-bottom: 1px solid #d5e4d6; background: rgba(255, 253, 249, .97); box-shadow: 0 10px 28px rgba(30, 72, 53, .1); transition: opacity .18s ease; }
+  .staff-mobile-topbar.is-menu-open { opacity: 0; pointer-events: none; }
+  .staff-mobile-toggle { position: relative; z-index: 1; display: grid; width: 38px; height: 43px; flex: 0 0 38px; place-items: center; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--staff-green); cursor: pointer; }
+  .staff-mobile-toggle:focus-visible { outline: 2px solid #95bca0; outline-offset: 2px; }
+  .staff-mobile-arrow-icon { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid #a9cfac; border-radius: 50%; background: #e7f2e5; color: #2e8060; font-size: 19px; font-weight: 700; line-height: 1; }
+  .staff-mobile-request-count { position: absolute; top: 2px; right: -1px; display: grid; min-width: 17px; height: 17px; padding: 0 3px; place-items: center; border-radius: 999px; background: #f2d1c6; color: #9a5044; font-size: 8px; line-height: 1; }
+  .staff-mobile-brand { display: flex; min-width: 0; flex: 1; align-items: center; gap: 8px; color: var(--staff-ink); text-decoration: none; }
+  .staff-mobile-brand img { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; object-fit: contain; }
+  .staff-mobile-brand-copy { display: flex; min-width: 0; align-items: baseline; gap: 2px; overflow: hidden; white-space: nowrap; }
+  .staff-mobile-brand-copy strong { overflow: hidden; font-size: 11px; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
+  .staff-mobile-brand-copy small { flex: 0 0 auto; color: var(--staff-muted); font-size: 9px; white-space: nowrap; }
   .staff-main,
   .staff-portal:has(.staff-sidebar.is-collapsed) .staff-main { margin-left: 0; padding: 78px 16px 56px; }
+  .staff-sidebar .staff-sidebar-brand { min-height: 55px; gap: 10px; padding: 0 2px 0 0; }
+  .staff-sidebar-brand img { width: 32px; height: 32px; }
+  .staff-brand-copy strong { font-size: 12px; }
+  .staff-brand-copy small { font-size: 10px; }
+  .staff-sidebar .staff-sidebar-brand > a { gap: 10px; justify-content: flex-start; }
+  .staff-sidebar-collapse { margin-left: auto; }
+  .staff-sidebar.is-open .staff-sidebar-collapse span { display: inline-block; font-size: 0; }
+  .staff-sidebar.is-open .staff-sidebar-collapse span::after { content: '←'; font-size: 17px; }
+  .staff-sidebar .staff-sidebar-role { gap: 12px; margin-top: 22px; padding: 12px; }
+  .staff-sidebar .staff-sidebar-role .staff-avatar { width: 32px; height: 32px; }
+  .staff-sidebar .staff-role-copy { display: flex; flex-direction: column; gap: 4px; }
+  .staff-role-copy strong { font-size: 12px; }
+  .staff-role-copy small { margin-top: 0; font-size: 10px; }
+  .staff-sidebar .staff-nav { gap: 7px; margin-top: 22px; }
+  .staff-sidebar .staff-nav a { gap: 13px; padding: 12px 14px; border-radius: 12px; }
+  .staff-sidebar .staff-nav a.is-active { box-shadow: inset 4px 0 0 var(--staff-green), 0 5px 15px rgba(47, 128, 96, .08); }
   .staff-welcome { grid-template-columns: 1fr; min-height: 0; margin-bottom: 28px; }
   .staff-welcome > div { padding: 31px 23px 28px; }
   .staff-welcome img { width: calc(100% - 46px); height: 175px; min-height: 0; margin: 0 23px 23px; mask-image: none; border-radius: 14px; }
@@ -584,6 +609,11 @@
   .staff-request-layout { grid-template-columns: 1fr; }
   .staff-editor-card,
   .staff-records-card { min-height: 0; }
+  .staff-mobile-create-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 2px 0 15px; padding: 14px 15px; border: 1px solid #b9d1ba; border-radius: 11px; background: linear-gradient(100deg, #edf6eb, #f7fbf5); color: #286b50; cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; text-align: left; }
+  .staff-mobile-create-toggle strong { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #dceede; color: #2e8060; font-size: 19px; line-height: 1; }
+  .staff-create-form-shell { display: none; }
+  .staff-editor-card.is-create-open .staff-create-form-shell { display: block; }
+  .staff-mobile-create-result { display: block; margin-top: 13px; }
   .staff-records-card { order: 2; }
   .staff-record-list { min-height: 280px; }
   .staff-request-inbox,

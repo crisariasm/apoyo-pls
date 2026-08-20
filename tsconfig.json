@@ -19,6 +19,6 @@
       "@payload-config": ["./payload.config.ts"]
     }
   },
-  "include": ["next-env.d.ts", "app/**/*.ts", "app/**/*.tsx", "collections/**/*.ts", "lib/**/*.ts", "payload.config.ts", ".next/types/**/*.ts", "payload-types.ts"],
+  "include": ["next-env.d.ts", "app/**/*.ts", "app/**/*.tsx", "collections/**/*.ts", "lib/**/*.ts", "tests/**/*.ts", "payload.config.ts", ".next/types/**/*.ts", "payload-types.ts"],
   "exclude": ["node_modules"]
 }

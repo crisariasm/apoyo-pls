@@ -23,6 +23,7 @@ La interfaz pública y el portal operativo están separados. El panel original d
 - [Variables de entorno](#variables-de-entorno)
 - [Sitio público](#sitio-público)
 - [Portal operativo del equipo](#portal-operativo-del-equipo)
+- [Asistente del centro](#asistente-del-centro)
 - [Roles y permisos](#roles-y-permisos)
 - [Colecciones y datos](#colecciones-y-datos)
 - [Flujos principales](#flujos-principales)
@@ -51,6 +52,7 @@ La aplicación está construida con:
 | Autenticación | Payload Auth con cookies de sesión |
 | Gestor de paquetes | pnpm 9.15.4 |
 | Contenedores locales | Docker Compose para PostgreSQL |
+| Asistente conversacional | n8n mediante webhook, consumido desde una ruta interna de Next.js |
 
 ### Organización principal del código
 
@@ -67,7 +69,10 @@ La aplicación está construida con:
 | `lib/staff-portal-auth.ts` | Sesión, permisos y pertenencia de registros |
 | `lib/staff-portal-validation.ts` | Validaciones del portal operativo |
 | `lib/audit-fields.ts` | Auditoría automática de creación y actualización |
+| `app/api/chatbot` | Capa segura entre el portal y el webhook de n8n del asistente |
 | `lib/input-security.ts` | Límites, origen, rate limiting y lectura segura de solicitudes |
+| `lib/chatbot.ts` | Configuración, llamada y normalización de la respuesta del webhook del asistente |
+| `docs/contexto-asistente.md` | Base de conocimiento operativa que se entrega al asistente |
 | `lib/image-processing.ts` | Rotación, redimensión y conversión de imágenes a WebP |
 | `lib/r2-storage.ts` | Firmado de operaciones GET, PUT y DELETE contra R2 |
 | `scripts/seed.ts` | Carga idempotente de datos y usuarios de prueba |
@@ -168,6 +173,34 @@ En producción, `PAYLOAD_SECRET` debe tener al menos 32 caracteres.
 | `SEED_PORTAL_PASSWORD` | `PLsEquipo2026!` | Contraseña compartida de prueba para roles operativos |
 
 Las contraseñas predeterminadas son solo para desarrollo. Deben cambiarse antes de utilizar el proyecto fuera de pruebas.
+
+### Asistente conversacional
+
+| Variable | Obligatoria | Uso |
+|---|---:|---|
+| `N8N_CHATBOT_WEBHOOK_URL` | Sí para activar el asistente | URL del webhook de n8n que responde las preguntas |
+| `N8N_CHATBOT_TOKEN` | Sí | Valor secreto que autentica la llamada al webhook. Debe coincidir exactamente con el de la credencial de n8n |
+| `N8N_CHATBOT_AUTH_HEADER` | No | Nombre de la cabecera que transporta el token, `Authorization` de forma predeterminada. Se usa `x-pls-token` |
+| `N8N_CHATBOT_TIMEOUT_MS` | No | Espera máxima de la respuesta, entre 3.000 y 60.000, con 45.000 de forma predeterminada |
+
+Ejemplo:
+
+```env
+N8N_CHATBOT_WEBHOOK_URL=https://TU-INSTANCIA-N8N/webhook/pls-chat
+N8N_CHATBOT_AUTH_HEADER=x-pls-token
+N8N_CHATBOT_TOKEN=UN_SECRETO_LARGO_Y_ALEATORIO
+N8N_CHATBOT_TIMEOUT_MS=45000
+```
+
+La URL del webhook y el token solo se leen en el servidor. No deben colocarse en componentes cliente ni en variables `NEXT_PUBLIC_*`. Si `N8N_CHATBOT_WEBHOOK_URL` no está configurada, la mascota sigue disponible y el chat informa que el asistente todavía no está conectado.
+
+El webhook de n8n exige esa cabecera: su nodo **Webhook** tiene *Authentication → Header Auth*, con una credencial cuyo **Name** es `x-pls-token` y cuyo **Value** es el mismo `N8N_CHATBOT_TOKEN`. Sin esa cabecera el webhook responde 403, así que nadie que consiga la URL puede consumir el modelo ni leer el documento operativo que viaja en cada llamada. Para rotar el secreto se cambia el valor en los dos lados; mientras no coincidan, el chat muestra que el asistente no está disponible.
+
+Genera el secreto con:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+```
 
 ### Cloudflare R2
 
@@ -383,6 +416,7 @@ Es una interfaz independiente del administrador original de Payload. Tiene:
 - Estado y visibilidad visibles en cada registro.
 - Auditoría de quién registró y quién actualizó.
 - Mensajes de error en español.
+- Asistente conversacional flotante del centro de acopio.
 
 ### Dashboard: `/equipo`
 
@@ -451,6 +485,113 @@ Estados disponibles:
 - Cerrada.
 
 Una solicitud que ya salió de **Pendiente** no puede volver a ese estado.
+
+## Asistente del centro
+
+El portal operativo incluye un asistente conversacional con forma de mascota. Está disponible en todas las páginas de `/equipo` con sesión activa y no aparece en `/equipo/login`.
+
+### Separación de responsabilidades
+
+| Componente | Responsabilidad |
+|---|---|
+| Mascota | Identidad visual e interacción |
+| Interfaz del chat en Next.js | Abrir, minimizar, mostrar mensajes, carga, errores e historial de la sesión |
+| `/api/chatbot` | Capa segura del servidor hacia n8n |
+| n8n | Orquestación de la conversación |
+| IA | Interpretación de la pregunta y redacción de la respuesta |
+| Payload y PostgreSQL | Fuente de la información consultada |
+
+El frontend no conoce los procesos del centro, no consulta la base de datos y no contiene lógica de IA ni respuestas preparadas. Todo el conocimiento vive en n8n.
+
+### Mascota e interfaz
+
+- Botón flotante en la esquina inferior derecha, sobre el dashboard y por debajo del menú móvil.
+- Animación suave en reposo, reacción al pasar el mouse y movimiento de cintura mientras el asistente responde.
+- Al hacer clic se abre la ventana del chat. El botón de minimizar la cierra sin perder la conversación.
+- Accesos rápidos a inventario, necesidades, procesos y distribuciones.
+- Envío con `Enter`, salto de línea con `Shift + Enter` y cierre con `Escape`.
+- Indicador de escritura mientras la IA responde y mensaje de error con opción de reintentar.
+- El historial se guarda en `sessionStorage`, se mantiene al navegar entre módulos y se pierde al cerrar la pestaña.
+- Botón para iniciar una conversación nueva, que también genera un identificador de conversación nuevo.
+- Se respeta `prefers-reduced-motion` y la ventana se adapta a pantallas móviles.
+
+### Contrato con n8n
+
+`/api/chatbot` requiere sesión operativa, valida el origen de la solicitud y limita a 15 preguntas por minuto y usuario, más 40 por dirección. La conversación vive en el navegador de la persona: n8n no guarda historiales. En cada pregunta el portal reenvía la conversación completa, saneada y recortada a los últimos 20 turnos de 1.000 caracteres cada uno:
+
+```json
+{
+  "document": "# Contexto operativo para el asistente del Centro de Acopio…",
+  "messages": [
+    { "role": "system", "content": "Quien escribe es Ana Pérez… Tiene Rol de inventario… Con su rol entra a estos módulos del panel: …" },
+    { "role": "user", "content": "¿cómo publico un anuncio?" },
+    { "role": "assistant", "content": "Entra al módulo Anuncios del centro…" },
+    { "role": "user", "content": "¿y la fecha de publicación?" }
+  ],
+  "message": "¿y la fecha de publicación?",
+  "sessionId": "uuid-del-usuario:id-de-conversacion",
+  "context": {
+    "area": "equipo",
+    "userId": "uuid-del-usuario",
+    "userName": "Nombre del usuario",
+    "role": "inventario",
+    "roleLabel": "Rol de inventario",
+    "seesAllRecords": false,
+    "modules": [
+      { "slug": "inventario", "label": "Inventario", "description": "…", "canCreate": true, "canDelete": true },
+      { "slug": "evidencias", "label": "Evidencias", "description": "…", "canCreate": true, "canDelete": true },
+      { "slug": "administracion", "label": "Solicitudes", "description": "…", "canCreate": false, "canDelete": true }
+    ],
+    "page": "/equipo/inventario"
+  }
+}
+```
+
+`document` es [docs/contexto-asistente.md](./docs/contexto-asistente.md) completo, leído del repositorio en cada pregunta. El conocimiento del asistente no se guarda en n8n: viaja en la llamada, así que editar ese archivo cambia lo que sabe el asistente sin tocar el flujo. El archivo se relee solo cuando cambia en disco, y `next.config.mjs` lo incluye en el empaquetado de la ruta para que exista también en producción. Cuesta unos 37 KB por pregunta.
+
+`context.modules` lleva los módulos que el rol de esa persona tiene habilitados, con si puede crear y eliminar registros en cada uno. Es lo que permite al asistente decir que algo no lo cubre su rol en vez de explicarle un procedimiento que no va a poder hacer.
+
+El primer turno de `messages` es el **turno de identidad**: lo arma el servidor con los datos de la sesión para que el asistente sepa a quién le responde y lo trate por su nombre. Es un respaldo: el flujo arma el mismo bloque con `context` y descarta los turnos `system` que lleguen del cliente, así que la identidad nunca queda duplicada ni la puede inyectar el navegador.
+
+`messages` es el historial que espera el flujo y `message` repite la última pregunta para los flujos que reciben un mensaje suelto. `context` lleva los datos de identidad y de rol en forma estructurada, que es de donde los lee el flujo.
+
+n8n responde con el texto ya redactado:
+
+```json
+{ "reply": "Para publicar un anuncio entra al módulo Anuncios del centro…" }
+```
+
+También se aceptan respuestas de texto plano y objetos que usen las claves `message`, `output`, `text`, `answer`, `response`, `content` o `result`, incluso anidadas en `data`, `json`, `body` o `payload`. Así se puede cambiar de modelo o de nodo de IA sin tocar el componente del chat.
+
+La respuesta puede venir en Markdown sencillo. [lib/assistant-markdown.ts](./lib/assistant-markdown.ts) la convierte en una estructura cerrada de bloques y fragmentos que el chat pinta como texto dentro de etiquetas fijas: no genera HTML, ni enlaces, ni atributos derivados del contenido, así que una respuesta manipulada no puede inyectar marcado. La respuesta del modelo se trata siempre como contenido no confiable.
+
+### Alcance del asistente
+
+El flujo de n8n está versionado en [docs/n8n-pls-chat.workflow.json](./docs/n8n-pls-chat.workflow.json) y se importa desde el panel de n8n. No contiene el prompt: lo recibe en cada llamada.
+
+El documento [docs/contexto-asistente.md](./docs/contexto-asistente.md) reúne la base de conocimiento operativa del asistente: pantallas, campos, estados, acciones del equipo y de la comunidad, y los procesos paso a paso. Es el archivo que se carga en n8n como contexto.
+
+El flujo de n8n debe consultar información actualizada en lugar de datos escritos dentro del prompt, y explicar los procesos del centro:
+
+| Tema | Ejemplos |
+|---|---|
+| Recursos | Ayudas recibidas, inventario, clasificación, categorías, cantidades y unidades |
+| Necesidades | Necesidades abiertas, prioridad crítica, alta y media, y qué recursos hacen falta |
+| Distribución | Distribuciones realizadas, organizaciones, destinos generales y estados |
+| Ayuda y voluntariado | Actividades próximas, cómo participar, registro de voluntarios y cómo ofrecer o solicitar apoyo |
+| Comunicados | Comunicados publicados, anuncios, horarios, rutas e información operativa |
+| Servicios | Servicios disponibles e información de cada servicio |
+| Boletín | Información publicada en el boletín |
+| Procesos internos | Cómo registrar una ayuda, clasificarla, actualizar el inventario, registrar una distribución o una necesidad, cambiar su prioridad, publicar un comunicado, registrar un voluntario y solicitar apoyo |
+
+### Reglas del asistente
+
+- Responde únicamente sobre el Centro de Acopio y su operación.
+- No responde sobre desarrollo, arquitectura, código fuente, frontend, backend, Next.js, Payload, PostgreSQL, infraestructura ni implementación técnica del proyecto. Ante ese tipo de preguntas debe responder algo equivalente a: «No puedo ayudarte con información técnica del desarrollo del sistema. Puedo ayudarte con los procesos e información relacionados con el Centro de Acopio».
+- No expone credenciales, endpoints privados ni información interna de infraestructura.
+- No modifica información sin una autorización explícita y un flujo diseñado para ello.
+
+Estas reglas se aplican dentro del flujo de n8n, que es el único que conoce el contexto del centro. El frontend no filtra ni interpreta el contenido de las respuestas.
 
 ## Panel administrativo de Payload
 
@@ -626,6 +767,7 @@ Todos requieren sesión operativa y validación de rol.
 | POST | `/api/equipo/:module` | Crea un registro si el módulo lo permite |
 | PATCH | `/api/equipo/:module` | Actualiza un registro mediante su UUID |
 | DELETE | `/api/equipo/:module` | Elimina un registro mediante su UUID |
+| POST | `/api/chatbot` | Envía una pregunta del equipo al webhook de n8n y devuelve la respuesta |
 | POST | `/api/equipo/media` | Optimiza y carga una imagen a R2 |
 | DELETE | `/api/equipo/media` | Elimina una imagen propia o autorizada de Payload y R2 |
 | GET | `/api/media/:id` | Sirve una imagen de R2 mediante su UUID |
@@ -816,6 +958,7 @@ Usarlo únicamente en desarrollo y después de revisar `DATABASE_URL`.
 | Login operativo | 16 KB |
 | Solicitud pública | 32 KB |
 | CRUD JSON del portal | 512 KB |
+| Pregunta al asistente | 64 KB, 1.000 caracteres por mensaje y 20 turnos de historial |
 | Imagen del portal | 10 MB |
 | Texto de título/nombre | 160 caracteres |
 | Texto descriptivo | Según campo, normalmente 2.000 a 5.000 caracteres |
@@ -825,6 +968,8 @@ Usarlo únicamente en desarrollo y después de revisar `DATABASE_URL`.
 - Solicitudes públicas: 10 por dirección en 15 minutos.
 - Login por IP: 12 intentos en 15 minutos.
 - Login por cuenta: 8 intentos en 15 minutos.
+- Asistente: 15 preguntas por usuario y 40 por dirección en 1 minuto.
+- El asistente registra en el servidor solo códigos de fallo y estados HTTP: nunca el token, el documento, la pregunta ni la respuesta.
 - Payload Auth: máximo 5 intentos y bloqueo durante 15 minutos.
 - Tokens de sesión: expiración configurada en 2 horas.
 - Cookies: `SameSite=Strict` y `Secure` en producción.
@@ -968,7 +1113,16 @@ La validación estándar es:
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
+```
+
+`pnpm test` usa el ejecutor de pruebas de Node, sin dependencias adicionales, y cubre el saneo del historial, la validación de la pregunta, la lectura de la respuesta del webhook, la URL del webhook, el límite de peticiones y el análisis del Markdown del asistente.
+
+Para compilar mientras el servidor de desarrollo está levantado, usa otro directorio de salida y evita pisar su `.next`:
+
+```bash
+NEXT_DIST_DIR=.next-audit pnpm build
 ```
 
 La compilación debe reconocer:
@@ -980,6 +1134,9 @@ La compilación debe reconocer:
 - Los endpoints públicos.
 - El login y CRUD del portal operativo.
 - El servidor de medios.
+- La ruta del asistente del centro.
 
 Última actualización documental: agosto de 2026.
+
+cumental: agosto de 2026.
 

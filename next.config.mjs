@@ -3,9 +3,13 @@ import process from 'node:process'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Permite compilar sin pisar el .next del servidor de desarrollo.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   images: { unoptimized: false },
+  // El asistente lee este documento en tiempo de ejecución: hay que empaquetarlo con la ruta.
+  outputFileTracingIncludes: { '/api/chatbot': ['./docs/contexto-asistente.md'] },
   async headers() {
     const securityHeaders = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },

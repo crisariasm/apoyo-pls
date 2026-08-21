@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 
 import type { DashboardRole, PortalModule } from '../../../../lib/staff-portal-config'
 import { dashboardRoleLabels } from '../../../../lib/staff-portal-config'
+import { clearAssistantConversation } from './assistant-storage'
 import { useStaffLive } from './staff-live-refresh'
 
 const navSymbols: Record<string, string> = {
@@ -156,6 +157,7 @@ export function PortalHeader({ name, userId, role, modules }: { name: string; us
 
   async function logout() {
     await fetch('/api/equipo/logout', { method: 'POST' })
+    clearAssistantConversation()
     window.location.assign('/equipo/login')
   }
 

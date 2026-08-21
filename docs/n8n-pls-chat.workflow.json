@@ -1,0 +1,200 @@
+{
+  "name": "PLs al llamado — asistente del equipo",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "httpMethod": "POST",
+        "path": "pls-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1ce30498-a0a7-49c3-8548-4f727bf4cfa9",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -96
+      ],
+      "webhookId": "pls-chat",
+      "notes": "Recibe { document, messages, message, context } desde /api/chatbot del portal. document es el contexto operativo leido del repositorio en cada llamada: por eso el prompt NO se guarda aca. AUTENTICACION: Header Auth. Al importar hay que elegir la credencial en el desplegable Credential for Header Auth; se crea con Name = x-pls-token y Value = el valor de N8N_CHATBOT_TOKEN del .env del portal. Sin credencial el nodo queda en rojo y el webhook no responde, que es lo que se busca."
+    },
+    {
+      "parameters": {
+        "url": "https://REEMPLAZAR-CON-LA-API-DE-CRISTIAN/api/estado",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "d55621e0-24e8-4679-be13-0eb08bddc429",
+      "name": "Datos en vivo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        64,
+        -96
+      ],
+      "onError": "continueRegularOutput",
+      "disabled": true,
+      "notes": "DESACTIVADO hasta que exista el endpoint. Mientras estaba activo gastaba hasta 8 s por pregunta y su respuesta no se usaba en ningun lado. Para conectarlo: 1) poner la URL real, 2) quitar el disabled, 3) en 'Armar contexto' agregar un campo datosEnVivo con {{ $('Datos en vivo').item.json }} y sumarlo al cuerpo del modelo, 4) aflojar la regla 1.7 del documento para que si pueda dar cifras."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "systemPrompt",
+              "value": "={{ (() => { const d = $('Webhook').item.json.body.document; return (typeof d === 'string' && d.trim().length > 200) ? d : \"Sos el asistente del portal del equipo del centro de acopio PLs al llamado. No recibiste el documento de contexto, así que no expliques procesos ni des datos: decile a la persona que el asistente no tiene cargada la información del centro y que avise al equipo de administración.\"; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "identidad",
+              "value": "={{ (() => { const c = $('Webhook').item.json.body.context || {}; const nombre = c.userName || 'una persona del equipo'; const rol = c.roleLabel || 'un rol operativo del centro'; const donde = c.page ? ' En este momento está en ' + c.page + '.' : ''; const mods = Array.isArray(c.modules) ? c.modules : []; const lista = mods.length ? mods.map(m => '- **' + m.label + '**: puede ' + (m.canCreate ? (m.canDelete ? 'crear, editar y eliminar registros' : 'crear y editar registros') : (m.canDelete ? 'actualizar y eliminar registros, pero no crearlos' : 'actualizar registros, pero no crearlos')) + '.').join('\\n') : '- (no llegó la lista de módulos: no afirmes qué puede o no puede hacer)'; const alcance = c.seesAllRecords ? 'Ve todos los registros del portal.' : 'Ve solo los registros creados por su usuario, salvo Solicitudes y Evidencias, que son compartidos.'; return ['---', '', '## QUIÉN TE ESTÁ ESCRIBIENDO AHORA', '', 'Le estás respondiendo a **' + nombre + '**, integrante del equipo del centro de acopio, con ' + rol + '.' + donde, 'Llamalo por su nombre. No es una persona de la comunidad.', '', '### Módulos del panel a los que entra con su rol', '', lista, '', alcance, '', 'Antes de explicar un procedimiento, revisá que el módulo esté en esa lista. Si no está, decíselo:' + ' su rol no lo cubre, cuál rol lo hace, y ofrecele lo que sí puede hacer. No le expliques pasos de un módulo al que no tiene acceso.' ].join('\\n'); })() }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "mensajes",
+              "value": "={{ (() => { const b = $('Webhook').item.json.body || {}; const lista = Array.isArray(b.messages) && b.messages.length ? b.messages : [{ role: 'user', content: b.message }]; return lista.filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim()).map(m => ({ role: m.role, content: String(m.content).slice(0, 1000) })).slice(-20); })() }}",
+              "type": "array"
+            },
+            {
+              "id": "a4",
+              "name": "modelo",
+              "value": "openrouter/free",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6386eba4-42af-4436-86e1-4b6fa2c4db62",
+      "name": "Armar contexto",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        -96
+      ],
+      "notes": "systemPrompt sale de body.document (docs/contexto-asistente.md del repositorio). Para cambiar lo que sabe el asistente se edita ESE archivo, no este nodo. identidad se arma con body.context: nombre, rol y modulos habilitados. modelo: cambiar 'openrouter/free' por el slug del modelo de pago; es el unico campo que hay que tocar."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $json.modelo, max_tokens: 1200, messages: [{ role: 'system', content: $json.systemPrompt + '\\n\\n' + $json.identidad }, ...$json.mensajes] }) }}",
+        "options": {
+          "timeout": 40000
+        }
+      },
+      "id": "daa049a9-7173-408c-ba98-a6e32defe2ed",
+      "name": "Modelo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        -96
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "DEhMWfAxz8h5PwW2",
+          "name": "Header Auth account 2"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Credencial: Header Auth con nombre x-api-key. La clave la pone quien hospeda el n8n, NUNCA va escrita en el nodo. Timeout 40 s: el portal espera hasta 45 s, antes estaba en 20 s y cortaba respuestas validas de los modelos gratuitos."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ reply: (() => { const c = $json.choices && $json.choices[0] && $json.choices[0].message ? $json.choices[0].message.content : null; const texto = typeof c === 'string' ? c : Array.isArray(c) ? c.map(p => (p && p.text) || '').join('') : ''; return texto.trim() || 'Ahorita no puedo responder. Preguntá en el grupo de Apoyo Pereira PLs.'; })() }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "505afb21-ccad-4692-a9f6-bc1aa21d8b65",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        -96
+      ],
+      "notes": "Devuelve { reply }. Contempla content como string o como lista de partes, y responde el texto de respaldo si el modelo fallo o vino vacio."
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Datos en vivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos en vivo": {
+      "main": [
+        [
+          {
+            "node": "Armar contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar contexto": {
+      "main": [
+        [
+          {
+            "node": "Modelo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cb854a23b0861817e6e5a19de1c22631cd2ecc160fa27f8b2061be3dd663c84d"
+  }
+}

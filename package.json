@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "node --import tsx/esm --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "payload": "payload",
     "payload:generate": "payload generate:types",

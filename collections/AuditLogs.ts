@@ -1,0 +1,107 @@
+import type { CollectionConfig } from 'payload'
+
+import { isPayloadAdminUser } from '../lib/access'
+
+const denyAuditMutation = () => false
+
+export const AuditLogs: CollectionConfig = {
+  slug: 'audit-logs',
+  labels: {
+    singular: 'Registro de actividad',
+    plural: 'Historial de actividad',
+  },
+  admin: {
+    useAsTitle: 'summary',
+    defaultColumns: ['occurredAt', 'actorName', 'action', 'entitySlug', 'source', 'success'],
+    group: 'Sistema',
+    hideAPIURL: true,
+    pagination: { defaultLimit: 25, limits: [25, 50, 100] },
+    description: 'Trazabilidad inmutable de accesos y cambios realizados por usuarios autenticados. No almacena contraseñas, tokens ni contenidos completos.',
+  },
+  access: {
+    admin: isPayloadAdminUser,
+    read: isPayloadAdminUser,
+    create: denyAuditMutation,
+    update: denyAuditMutation,
+    delete: denyAuditMutation,
+  },
+  defaultSort: '-occurredAt',
+  disableBulkDelete: true,
+  disableBulkEdit: true,
+  disableDuplicate: true,
+  lockDocuments: false,
+  indexes: [
+    { fields: ['actorId', 'occurredAt'] },
+    { fields: ['entitySlug', 'occurredAt'] },
+    { fields: ['action', 'occurredAt'] },
+  ],
+  fields: [
+    {
+      name: 'occurredAt',
+      type: 'date',
+      label: 'Fecha y hora',
+      required: true,
+      index: true,
+      defaultValue: () => new Date().toISOString(),
+      admin: { readOnly: true, date: { displayFormat: 'dd/MM/yyyy HH:mm:ss' } },
+    },
+    {
+      name: 'action',
+      type: 'select',
+      label: 'Acción',
+      required: true,
+      index: true,
+      admin: { readOnly: true },
+      options: [
+        { label: 'Inicio de sesión', value: 'login' },
+        { label: 'Cierre de sesión', value: 'logout' },
+        { label: 'Creación', value: 'create' },
+        { label: 'Actualización', value: 'update' },
+        { label: 'Eliminación', value: 'delete' },
+        { label: 'Error de operación', value: 'error' },
+      ],
+    },
+    {
+      name: 'source',
+      type: 'select',
+      label: 'Origen',
+      required: true,
+      index: true,
+      admin: { readOnly: true },
+      options: [
+        { label: 'Administrador de Payload', value: 'payload-admin' },
+        { label: 'Panel de equipo', value: 'equipo' },
+        { label: 'Proceso interno', value: 'sistema' },
+      ],
+    },
+    { name: 'actorName', type: 'text', label: 'Usuario', required: true, maxLength: 160, admin: { readOnly: true } },
+    { name: 'actorEmail', type: 'text', label: 'Correo', maxLength: 254, admin: { readOnly: true } },
+    { name: 'actorRole', type: 'text', label: 'Rol', maxLength: 80, admin: { readOnly: true } },
+    { name: 'actorId', type: 'text', label: 'ID del usuario', maxLength: 64, index: true, admin: { readOnly: true } },
+    {
+      name: 'entityType',
+      type: 'select',
+      label: 'Tipo de objetivo',
+      required: true,
+      admin: { readOnly: true },
+      options: [
+        { label: 'Colección', value: 'collection' },
+        { label: 'Configuración global', value: 'global' },
+        { label: 'Autenticación', value: 'auth' },
+        { label: 'Sistema', value: 'system' },
+      ],
+    },
+    { name: 'entitySlug', type: 'text', label: 'Módulo', required: true, maxLength: 120, index: true, admin: { readOnly: true } },
+    { name: 'documentId', type: 'text', label: 'ID del registro', maxLength: 80, index: true, admin: { readOnly: true } },
+    { name: 'documentLabel', type: 'text', label: 'Registro', maxLength: 200, admin: { readOnly: true } },
+    { name: 'changedFields', type: 'text', label: 'Campos modificados', maxLength: 2000, admin: { readOnly: true } },
+    { name: 'summary', type: 'textarea', label: 'Resumen', required: true, maxLength: 1000, admin: { readOnly: true } },
+    { name: 'path', type: 'text', label: 'Ruta', maxLength: 500, admin: { readOnly: true } },
+    { name: 'method', type: 'text', label: 'Método', maxLength: 16, admin: { readOnly: true } },
+    { name: 'ipAddress', type: 'text', label: 'Dirección de red', maxLength: 128, admin: { readOnly: true } },
+    { name: 'userAgent', type: 'textarea', label: 'Dispositivo / navegador', maxLength: 500, admin: { readOnly: true } },
+    { name: 'success', type: 'checkbox', label: 'Operación exitosa', required: true, defaultValue: true, index: true, admin: { readOnly: true } },
+    { name: 'statusCode', type: 'number', label: 'Código de estado', min: 100, max: 599, admin: { readOnly: true } },
+    { name: 'errorName', type: 'text', label: 'Tipo de error', maxLength: 120, admin: { readOnly: true } },
+  ],
+}

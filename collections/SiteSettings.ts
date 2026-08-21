@@ -1,6 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
 import { isCoordinator } from '../lib/access'
+import { auditGlobalChange } from '../lib/audit-log'
 import { isValidPhone } from '../lib/public-request-validation'
 
 export const SiteSettings: GlobalConfig = {
@@ -11,6 +12,7 @@ export const SiteSettings: GlobalConfig = {
     read: () => true,
     update: isCoordinator,
   },
+  hooks: { afterChange: [auditGlobalChange] },
   fields: [
     { name: 'centerName', type: 'text', label: 'Nombre del centro', required: true, maxLength: 160, defaultValue: 'Centro de acopio PLs al llamado' },
     { name: 'address', type: 'text', label: 'Dirección', required: true, maxLength: 240, defaultValue: 'Pereira, Risaralda · Dirección por confirmar' },

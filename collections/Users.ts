@@ -1,6 +1,7 @@
 import type { Access, CollectionConfig } from 'payload'
 
 import { isPayloadAdminUser, roles, type StaffRole } from '../lib/access'
+import { auditLogin, auditLogout } from '../lib/audit-log'
 
 const roleLabels: Record<StaffRole, string> = {
   admin: 'Administrador de Payload',
@@ -45,6 +46,10 @@ export const Users: CollectionConfig = {
     create: isPayloadAdminUser,
     update: isPayloadAdminUser,
     delete: isPayloadAdminUser,
+  },
+  hooks: {
+    afterLogin: [auditLogin],
+    afterLogout: [auditLogout],
   },
   fields: [
     {

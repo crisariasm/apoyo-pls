@@ -68,7 +68,9 @@ La aplicación está construida con:
 | `lib/staff-portal-config.ts` | Módulos, campos y roles del portal operativo |
 | `lib/staff-portal-auth.ts` | Sesión, permisos y pertenencia de registros |
 | `lib/staff-portal-validation.ts` | Validaciones del portal operativo |
-| `lib/audit-fields.ts` | Auditoría automática de creación y actualización |
+| `lib/audit-fields.ts` | Identidad del creador y último editor en cada registro operativo |
+| `lib/audit-log.ts` | Historial inmutable de accesos, cambios, eliminaciones y errores autenticados |
+| `components/payload/MonitoringView.tsx` | Tablero de salud y actividad exclusivo del administrador de Payload |
 | `app/api/chatbot` | Capa segura entre el portal y el webhook de n8n del asistente |
 | `lib/input-security.ts` | Límites, origen, rate limiting y lectura segura de solicitudes |
 | `lib/chatbot.ts` | Configuración, llamada y normalización de la respuesta del webhook del asistente |
@@ -622,6 +624,31 @@ Los roles operativos no pueden utilizar `/admin`, aunque tengan acceso al portal
 
 El panel permite administrar directamente las colecciones y el global de configuración según los permisos técnicos definidos en [lib/access.ts](./lib/access.ts).
 
+### Monitoreo y auditoría
+
+Los roles `admin` y `super-admin` encuentran **Monitoreo** en la navegación de
+Payload. La vista `/admin/monitoring` conserva la interfaz nativa del CMS y
+reúne:
+
+- Estado de la aplicación, conexión con PostgreSQL y comprobación de R2.
+- Tiempo de respuesta de los servicios comprobados.
+- Actividad, usuarios activos, solicitudes pendientes y errores de las últimas 24 horas.
+- Gráfica de actividad de siete días y conteo real de registros por módulo.
+- Historial paginado con filtros por usuario, acción, origen, módulo y periodo.
+
+La colección técnica `audit-logs` registra acciones de usuarios autenticados:
+inicio y cierre de sesión, creación, actualización, eliminación y errores de
+operación. Cada entrada conserva fecha, actor, rol, origen, módulo, registro,
+campos afectados, ruta, método y datos básicos del dispositivo. No copia
+contraseñas, tokens, valores completos de formularios ni trazas internas de los
+errores.
+
+El historial es de solo lectura desde Payload: ni siquiera los administradores
+pueden crearlo, editarlo o eliminarlo por el API normal. Los procesos internos
+lo escriben después de una acción válida y un fallo al guardar auditoría no
+interrumpe la operación principal. Las cargas del seeder y las solicitudes
+anónimas no generan entradas para evitar atribuciones falsas y ruido operativo.
+
 ## Roles y permisos
 
 ### Roles técnicos de Payload
@@ -683,6 +710,7 @@ Todas las colecciones pasan por [withAuditFields](./lib/audit-fields.ts), que a�
 |---|---|
 | `users` | Usuarios técnicos y operativos, roles, estado activo y autenticación |
 | `media` | Metadatos de imágenes y claves de almacenamiento R2 |
+| `audit-logs` | Historial inmutable de acciones autenticadas, visible solo para administradores de Payload |
 | `site-settings` | Nombre, dirección, horarios, estado, instrucciones para donar, mensaje principal, contacto y última actualización |
 
 Los nombres de familias, menores, documentos, teléfonos sensibles y ubicaciones exactas no se publican en los módulos públicos.
@@ -951,6 +979,10 @@ migraciones versionadas siempre se ejecutan antes del seeder. En producción se
 debe ejecutar `pnpm payload:migrate` como parte del despliegue antes de iniciar
 la aplicación.
 
+La migración `20260821_160519` añade únicamente la colección e índices del
+historial de auditoría. No modifica ni transforma las tablas operativas
+existentes.
+
 ### UUID y limpieza de desarrollo
 
 El proyecto ya usa UUID desde la configuración de Payload y el seeder genera
@@ -1058,6 +1090,7 @@ Antes de publicar:
 13. Comprueba que `/admin` no sea accesible para roles operativos.
 14. Comprueba que el portal operativo no acepte usuarios `admin` o `super-admin`.
 15. Revisa logs, rate limiting y permisos de R2.
+16. Abre `/admin/monitoring`, confirma PostgreSQL y R2 en estado operativo y verifica que una acción de prueba aparezca en el historial.
 
 Comandos de compilación:
 
@@ -1170,4 +1203,3 @@ La compilación debe reconocer:
 - La ruta del asistente del centro.
 
 Última actualización documental: agosto de 2026.
-

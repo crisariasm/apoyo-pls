@@ -68,7 +68,7 @@ function signingKey(secretAccessKey: string, dateStamp: string, region: string) 
   return hmac(serviceKey, 'aws4_request')
 }
 
-async function signedRequest(method: 'DELETE' | 'GET' | 'PUT', key: string, body?: R2Body, contentType?: string) {
+async function signedRequest(method: 'DELETE' | 'GET' | 'HEAD' | 'PUT', key: string, body?: R2Body, contentType?: string, signal?: AbortSignal) {
   if (!isSafeObjectKey(key)) throw new Error('La clave del objeto R2 no es válida.')
   const config = requireR2Config()
   const endpoint = new URL(config.endpoint)
@@ -100,7 +100,7 @@ async function signedRequest(method: 'DELETE' | 'GET' | 'PUT', key: string, body
   }
   if (contentType) headers['Content-Type'] = contentType
 
-  return fetch(url, { method, headers, body: body ? Buffer.from(body) : undefined, cache: 'no-store' })
+  return fetch(url, { method, headers, body: body ? Buffer.from(body) : undefined, cache: 'no-store', signal })
 }
 
 export function createR2Key(filename: string) {
@@ -126,4 +126,8 @@ export async function deleteR2Object(key: string) {
 
 export async function getR2Object(key: string) {
   return signedRequest('GET', key)
+}
+
+export async function headR2Object(key: string, timeoutMs = 5000) {
+  return signedRequest('HEAD', key, undefined, undefined, AbortSignal.timeout(timeoutMs))
 }

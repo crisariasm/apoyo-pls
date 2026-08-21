@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 
 import config from '../../../../payload.config'
 import { getR2Object, isR2Enabled } from '../../../../lib/r2-storage'
+import { isDashboardRole } from '../../../../lib/staff-portal-auth'
 import { isUUID } from '../../../../lib/uuid'
 
 export const runtime = 'nodejs'
@@ -15,7 +16,37 @@ function safeContentType(value: unknown) {
   return /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/.test(candidate) ? candidate : ''
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+function canViewDraftMedia(user: unknown) {
+  if (!user || typeof user !== 'object') return false
+  const role = (user as { role?: unknown }).role
+  return role === 'admin' || role === 'super-admin' || isDashboardRole(role)
+}
+
+async function isPublishedMedia(payload: Awaited<ReturnType<typeof getPayload>>, mediaId: string) {
+  try {
+    const [noticeResult, evidenceResult] = await Promise.all([
+      payload.find({
+        collection: 'community-notices',
+        where: { and: [{ image: { equals: mediaId } }, { status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] },
+        depth: 0,
+        limit: 1,
+        overrideAccess: true,
+      }),
+      payload.find({
+        collection: 'distribution-evidence',
+        where: { and: [{ image: { equals: mediaId } }, { status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] },
+        depth: 0,
+        limit: 1,
+        overrideAccess: true,
+      }),
+    ])
+    return noticeResult.totalDocs > 0 || evidenceResult.totalDocs > 0
+  } catch {
+    return false
+  }
+}
+
+export async function GET(request: Request, context: RouteContext) {
   let decodedId = ''
   try {
     const { id } = await context.params
@@ -30,6 +61,20 @@ export async function GET(_request: Request, context: RouteContext) {
 
   try {
     const payload = await getPayload({ config })
+    let authenticatedViewer = false
+    if (request.headers.get('cookie')) {
+      try {
+        const authResult = await payload.auth({ headers: request.headers })
+        authenticatedViewer = canViewDraftMedia(authResult.user)
+      } catch {
+        authenticatedViewer = false
+      }
+    }
+
+    if (!authenticatedViewer && !(await isPublishedMedia(payload, decodedId))) {
+      return NextResponse.json({ message: 'La imagen no está disponible públicamente.' }, { status: 404 })
+    }
+
     const media = await payload.findByID({ collection: 'media', id: decodedId, overrideAccess: true }) as unknown as Record<string, unknown>
     const key = typeof media.r2Key === 'string' ? media.r2Key : ''
     if (!key) return NextResponse.json({ message: 'La imagen no está almacenada en R2.' }, { status: 404 })
@@ -39,7 +84,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const headers = new Headers()
     const contentType = safeContentType(media.r2MimeType) || safeContentType(file.headers.get('content-type')) || 'application/octet-stream'
     headers.set('Content-Type', contentType)
-    headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+    headers.set('Cache-Control', authenticatedViewer ? 'private, no-store' : 'public, max-age=31536000, immutable')
     headers.set('X-Content-Type-Options', 'nosniff')
     const contentLength = file.headers.get('content-length')
     if (contentLength) headers.set('Content-Length', contentLength)

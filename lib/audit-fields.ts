@@ -1,6 +1,7 @@
 import { ValidationError, type CollectionBeforeChangeHook, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
 import { isPayloadAdminUser } from './access'
+import { auditCollectionChange, auditCollectionDelete } from './audit-log'
 
 const seedActor = 'Carga inicial del sistema'
 const maxLengths: Record<string, number> = {
@@ -132,6 +133,8 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
       ...collection.hooks,
       beforeValidate: [...(collection.hooks?.beforeValidate || []), enforceStringLimits],
       beforeChange: [...(collection.hooks?.beforeChange || []), stampAuditFields],
+      afterChange: [...(collection.hooks?.afterChange || []), auditCollectionChange],
+      afterDelete: [...(collection.hooks?.afterDelete || []), auditCollectionDelete],
     },
   }
 }

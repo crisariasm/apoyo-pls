@@ -4,6 +4,7 @@ import { buildConfig } from 'payload'
 import { es } from 'payload/i18n/es'
 import sharp from 'sharp'
 
+import { AuditLogs } from './collections/AuditLogs'
 import { Announcements } from './collections/Announcements'
 import { AidIntakes } from './collections/AidIntakes'
 import { Bulletins } from './collections/Bulletins'
@@ -19,10 +20,22 @@ import { SupportRequests } from './collections/SupportRequests'
 import { Users } from './collections/Users'
 import { VolunteerActivities } from './collections/VolunteerActivities'
 import { withAuditFields } from './lib/audit-fields'
+import { auditPayloadError } from './lib/audit-log'
 
 const payloadSecret = process.env.PAYLOAD_SECRET || ''
 if (process.env.NODE_ENV === 'production' && payloadSecret.length < 32) {
   throw new Error('PAYLOAD_SECRET debe existir y tener al menos 32 caracteres en producción.')
+}
+
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL debe existir en producción.')
+
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL?.trim() || ''
+  try {
+    if (new URL(serverUrl).protocol !== 'https:') throw new Error('NEXT_PUBLIC_SERVER_URL debe usar HTTPS en producción.')
+  } catch {
+    throw new Error('NEXT_PUBLIC_SERVER_URL debe ser una URL HTTPS válida en producción.')
+  }
 }
 
 const positiveInteger = (value: string | undefined, fallback: number) => {
@@ -37,6 +50,18 @@ const pgIdleTimeout = positiveInteger(process.env.PG_IDLE_TIMEOUT_MS, 30000)
 export default buildConfig({
   admin: {
     user: Users.slug,
+    importMap: { importMapFile: './app/(payload)/admin/importMap.ts' },
+    components: {
+      beforeNavLinks: ['./components/payload/MonitoringNavLink#MonitoringNavLink'],
+      views: {
+        monitoring: {
+          Component: './components/payload/MonitoringView#MonitoringView',
+          path: '/monitoring',
+          exact: true,
+          meta: { title: 'Monitoreo | PLs al llamado' },
+        },
+      },
+    },
     meta: {
       titleSuffix: ' — PLs al llamado',
       description: 'Panel operativo del centro de acopio PLs al llamado',
@@ -56,6 +81,7 @@ export default buildConfig({
     withAuditFields(VolunteerActivities),
     withAuditFields(SupportRequests),
     withAuditFields(Media),
+    AuditLogs,
   ],
   globals: [SiteSettings],
   editor: lexicalEditor(),
@@ -82,4 +108,5 @@ export default buildConfig({
   cors: [process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'],
   csrf: [process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'],
   graphQL: { disable: false },
+  hooks: { afterError: [auditPayloadError] },
 })

@@ -80,6 +80,7 @@ export interface Config {
     'volunteer-activities': VolunteerActivity;
     'support-requests': SupportRequest;
     media: Media;
+    'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -100,6 +101,7 @@ export interface Config {
     'volunteer-activities': VolunteerActivitiesSelect<false> | VolunteerActivitiesSelect<true>;
     'support-requests': SupportRequestsSelect<false> | SupportRequestsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -678,6 +680,37 @@ export interface SupportRequest {
   createdAt: string;
 }
 /**
+ * Trazabilidad inmutable de accesos y cambios realizados por usuarios autenticados. No almacena contraseñas, tokens ni contenidos completos.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: string;
+  occurredAt: string;
+  action: 'login' | 'logout' | 'create' | 'update' | 'delete' | 'error';
+  source: 'payload-admin' | 'equipo' | 'sistema';
+  actorName: string;
+  actorEmail?: string | null;
+  actorRole?: string | null;
+  actorId?: string | null;
+  entityType: 'collection' | 'global' | 'auth' | 'system';
+  entitySlug: string;
+  documentId?: string | null;
+  documentLabel?: string | null;
+  changedFields?: string | null;
+  summary: string;
+  path?: string | null;
+  method?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  success: boolean;
+  statusCode?: number | null;
+  errorName?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1102,6 +1135,34 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  occurredAt?: T;
+  action?: T;
+  source?: T;
+  actorName?: T;
+  actorEmail?: T;
+  actorRole?: T;
+  actorId?: T;
+  entityType?: T;
+  entitySlug?: T;
+  documentId?: T;
+  documentLabel?: T;
+  changedFields?: T;
+  summary?: T;
+  path?: T;
+  method?: T;
+  ipAddress?: T;
+  userAgent?: T;
+  success?: T;
+  statusCode?: T;
+  errorName?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

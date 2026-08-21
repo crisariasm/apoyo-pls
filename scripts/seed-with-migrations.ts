@@ -7,6 +7,10 @@ import { getPayload } from 'payload'
 import type { StaffRole } from '../lib/access'
 import config from '../payload.config'
 
+if (process.env.NODE_ENV === 'production') {
+  throw new Error('El seeder de desarrollo no puede ejecutarse en producción.')
+}
+
 const databaseUrl = process.env.DATABASE_URL
 if (!databaseUrl) {
   throw new Error('DATABASE_URL es obligatorio para ejecutar el seeder.')

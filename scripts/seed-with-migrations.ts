@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 
-import { Pool } from 'pg'
 import { getPayload } from 'payload'
 
 import type { StaffRole } from '../lib/access'
@@ -11,8 +10,7 @@ if (process.env.NODE_ENV === 'production') {
   throw new Error('El seeder de desarrollo no puede ejecutarse en producción.')
 }
 
-const databaseUrl = process.env.DATABASE_URL
-if (!databaseUrl) {
+if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL es obligatorio para ejecutar el seeder.')
 }
 
@@ -33,19 +31,6 @@ const run = (command: string, args: string[]) =>
       reject(new Error(`${command} ${args.join(' ')} terminó con código ${code ?? 'desconocido'}.`))
     })
   })
-
-const hasMigrationTable = async () => {
-  const pool = new Pool({ connectionString: databaseUrl })
-
-  try {
-    const result = await pool.query<{ exists: string | null }>(
-      `SELECT to_regclass('public.payload_migrations') AS "exists"`,
-    )
-    return Boolean(result.rows[0]?.exists)
-  } finally {
-    await pool.end()
-  }
-}
 
 const migrationCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 
@@ -525,9 +510,7 @@ async function seed() {
 }
 
 const main = async () => {
-  if (await hasMigrationTable()) {
-    await run(migrationCommand, ['payload:migrate', '--force-accept-warning'])
-  }
+  await run(migrationCommand, ['payload:migrate', '--force-accept-warning'])
 
   await seed()
 }

@@ -788,7 +788,7 @@ La implementación actual utiliza polling controlado, no WebSockets. En el porta
 - Las lecturas públicas usan `depth: 0` cuando no necesitan relaciones y `depth: 1` solo para distribuciones, evidencias y comunicados con imágenes.
 - Los listados públicos conservan un límite de seguridad de 100 registros; la interfaz los muestra dentro de contenedores desplazables para evitar páginas interminables.
 - El dashboard usa consultas acotadas (`limit: 1`) y `totalDocs` para contar, en vez de cargar todos los documentos y filtrarlos en JavaScript.
-- Las consultas de publicación y estado tienen índices versionados en `migrations/20260819_140000_add_runtime_indexes.ts`.
+- Las consultas de publicación y estado tienen índices incluidos en la migración inicial `migrations/20260821_182428_baseline.ts`.
 - Las operaciones independientes del servidor se ejecutan en paralelo con `Promise.all`; las dependientes, como sesión → autorización y distribución → evidencia, conservan el orden para no abrir una condición de carrera.
 - En producción `push` de Payload está desactivado: ejecuta `pnpm payload:migrate` antes de desplegar una nueva versión.
 
@@ -915,12 +915,12 @@ Ejecutar:
 pnpm payload:seed
 ```
 
-`payload:seed` comprueba si la base ya tiene el registro de migraciones. Cuando
-existe un esquema anterior, ejecuta primero `pnpm payload:migrate` para preparar
-el enum de roles y convertir `anuncios-boletin` antes de que Payload sincronice
-el esquema en desarrollo. En una base completamente nueva omite ese paso porque
-todavía no existen tablas que migrar y deja que el `push` de desarrollo cree el
-esquema inicial.
+`payload:seed` ejecuta siempre primero `pnpm payload:migrate`. Esto permite que
+una base completamente vacía cree `payload_migrations` y todas las tablas antes
+de insertar los datos. La migración inicial está en
+`migrations/20260821_182428_baseline.ts` y su archivo `.json` es únicamente el
+snapshot que Payload necesita para generar migraciones futuras; no es una
+migración adicional.
 
 ### Usuarios de prueba
 
@@ -967,10 +967,18 @@ pnpm payload:generate
 
 ### Crear y aplicar migraciones
 
-Para aplicar las migraciones pendientes:
+El proyecto parte de una única migración inicial que contiene el esquema
+completo actual: enums, usuarios, media, colecciones, relaciones, índices,
+`site_settings` y las tablas internas de Payload. Para una base vacía:
 
 ```bash
 pnpm payload:migrate
+```
+
+Para reiniciar una base local de desarrollo y volver a ejecutar esa migración:
+
+```bash
+pnpm payload migrate:fresh
 ```
 
 Para crear una migración de cambios posteriores:
@@ -979,14 +987,10 @@ Para crear una migración de cambios posteriores:
 pnpm payload:migrate:create
 ```
 
-En desarrollo, Payload puede sincronizar cambios de esquema con `push`, pero las
-migraciones versionadas siempre se ejecutan antes del seeder. En producción se
-debe ejecutar `pnpm payload:migrate` como parte del despliegue antes de iniciar
-la aplicación.
-
-La migración `20260821_160519` añade únicamente la colección e índices del
-historial de auditoría. No modifica ni transforma las tablas operativas
-existentes.
+En desarrollo, Payload puede sincronizar cambios de esquema con `push`, pero el
+seeder ejecuta primero la migración inicial para que el flujo sea igual desde
+una base vacía. En producción se debe ejecutar `pnpm payload:migrate` como parte
+del despliegue antes de iniciar la aplicación.
 
 ### UUID y limpieza de desarrollo
 
@@ -1211,17 +1215,24 @@ Después valida `DATABASE_URL` y vuelve a ejecutar:
 pnpm payload:seed
 ```
 
-### Error `invalid input value for enum enum_users_role`
+### Error `relation "payload_migrations" does not exist`
 
-La base conserva el rol combinado de una versión anterior. La corrección está
-versionada en `migrations/` y se aplica automáticamente cuando ejecutas:
+La base no tenía una migración inicial registrada. La solución actual es la
+migración baseline completa en `migrations/20260821_182428_baseline.ts`. En una
+base local vacía ejecuta:
+
+```bash
+pnpm payload:migrate
+```
+
+Después carga los datos de desarrollo:
 
 ```bash
 pnpm payload:seed
 ```
 
-Si quieres separar los pasos, usa primero `pnpm payload:migrate` y después
-`pnpm payload:seed`.
+Si la base contiene restos de un esquema anterior y no hay datos que conservar,
+usa `pnpm payload migrate:fresh` antes del seeder.
 
 ### El portal no permite subir imágenes
 

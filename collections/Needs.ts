@@ -37,6 +37,7 @@ export const Needs: CollectionConfig = {
     },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -49,8 +50,8 @@ export const Needs: CollectionConfig = {
       ],
     },
     { name: 'zone', type: 'text', label: 'Zona o destino general' },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true },
-    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, admin: { description: 'Lo fija como una de las necesidades prioritarias en la vista pública.' } },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true, index: true },
+    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, index: true, admin: { description: 'Lo fija como una de las necesidades prioritarias en la vista pública.' } },
     { name: 'publishedAt', type: 'date', label: 'Publicar desde' },
   ],
 }

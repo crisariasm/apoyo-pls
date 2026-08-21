@@ -1,6 +1,8 @@
 import { ValidationError, type CollectionBeforeChangeHook, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
-const seedActor = 'Seeder inicial PLs al llamado'
+import { isPayloadAdminUser } from './access'
+
+const seedActor = 'Carga inicial del sistema'
 const maxLengths: Record<string, number> = {
   title: 160,
   name: 160,
@@ -16,7 +18,6 @@ const maxLengths: Record<string, number> = {
   location: 160,
   contact: 200,
   contactName: 160,
-  contactChannel: 200,
   author: 160,
   startTime: 20,
   endTime: 20,
@@ -72,7 +73,8 @@ const stampAuditFields: CollectionBeforeChangeHook = ({ data, req, operation, co
   if (!data) return data
 
   const user = req.user as { id?: string; name?: string; email?: string } | undefined
-  const actor = user?.name?.trim() || user?.email?.trim() || (typeof data.registeredBy === 'string' && data.registeredBy.trim() ? data.registeredBy.trim() : collection.slug === 'support-requests' ? 'Formulario público' : seedActor)
+  const suppliedCreateActor = operation === 'create' && typeof data.registeredBy === 'string' && data.registeredBy.trim() ? data.registeredBy.trim() : ''
+  const actor = user?.name?.trim() || user?.email?.trim() || suppliedCreateActor || (collection.slug === 'support-requests' ? 'Formulario público' : seedActor)
   const actorId = typeof user?.id === 'string' ? user.id : ''
   const nextData = { ...data } as Record<string, unknown>
 
@@ -96,13 +98,16 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         type: 'text',
         label: 'Registrado por',
         maxLength: 160,
+        access: { read: isPayloadAdminUser },
         admin: { readOnly: true, description: 'Se completa automáticamente con la persona que creó el registro.' },
       },
       {
         name: 'registeredByUserId',
         type: 'text',
         label: 'ID del creador',
+        index: true,
         maxLength: 64,
+        access: { read: isPayloadAdminUser },
         admin: { readOnly: true, hidden: true },
       },
       {
@@ -110,13 +115,16 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         type: 'text',
         label: 'Última actualización por',
         maxLength: 160,
+        access: { read: isPayloadAdminUser },
         admin: { readOnly: true, description: 'Se actualiza automáticamente con la última persona que lo modificó.' },
       },
       {
         name: 'updatedByUserId',
         type: 'text',
         label: 'ID de quien actualizó',
+        index: true,
         maxLength: 64,
+        access: { read: isPayloadAdminUser },
         admin: { readOnly: true, hidden: true },
       },
     ],

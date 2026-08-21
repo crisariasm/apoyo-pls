@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { Access, CollectionConfig } from 'payload'
 
 import { isPayloadAdminUser, roles, type StaffRole } from '../lib/access'
 
@@ -7,7 +7,8 @@ const roleLabels: Record<StaffRole, string> = {
   'super-admin': 'Super administrador de Payload',
   'que-tenemos': 'Rol que tenemos',
   'que-necesitamos': 'Rol que necesitamos',
-  'anuncios-boletin': 'Rol de anuncios del centro y boletín informativo',
+  anuncios: 'Rol de anuncios del centro',
+  boletin: 'Rol de boletín informativo',
   servicios: 'Rol de servicios',
   inventario: 'Rol de inventario',
   distribucion: 'Rol de distribución',
@@ -15,12 +16,19 @@ const roleLabels: Record<StaffRole, string> = {
   administracion: 'Rol de administración',
 }
 
+const canReadOwnUserOrPayloadAdmin: Access = ({ id, req }) => {
+  if (isPayloadAdminUser({ req })) return true
+  return Boolean(req.user && req.user.collection === 'users' && id && String(req.user.id) === String(id))
+}
+
 export const Users: CollectionConfig = {
   slug: 'users',
   auth: {
     maxLoginAttempts: 5,
     lockTime: 15 * 60 * 1000,
-    tokenExpiration: 2 * 60 * 60,
+    tokenExpiration: 8 * 60 * 60,
+    useSessions: true,
+    removeTokenFromResponses: true,
     cookies: {
       sameSite: 'Strict',
       secure: process.env.NODE_ENV === 'production',
@@ -33,7 +41,7 @@ export const Users: CollectionConfig = {
   },
   access: {
     admin: isPayloadAdminUser,
-    read: isPayloadAdminUser,
+    read: canReadOwnUserOrPayloadAdmin,
     create: isPayloadAdminUser,
     update: isPayloadAdminUser,
     delete: isPayloadAdminUser,

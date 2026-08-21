@@ -113,7 +113,8 @@ El sistema tiene dos espacios:
 2. El formulario pide **Correo del equipo** y **Contraseña**, y el botón dice **Ingresar al portal** (mientras valida muestra «Ingresando…»).
 3. Si las credenciales no son correctas aparece un mensaje de error bajo el formulario.
 4. Al entrar, la persona llega al dashboard en `/equipo`.
-5. Para salir se usa **Cerrar sesión** al final de la barra lateral. Si la sesión vence, el portal devuelve a la pantalla de ingreso.
+5. Para salir se usa **Cerrar sesión** al final de la barra lateral.
+6. La sesión dura hasta **8 horas de inactividad** y se renueva sola mientras el portal está abierto. Si vence, el portal devuelve a la pantalla de ingreso y hay que volver a entrar.
 
 ### 3.2 Estructura de la pantalla
 
@@ -142,7 +143,8 @@ Regla de conteo: el rol de administración ve todos los registros; los demás ro
 |---|---|
 | Rol que tenemos | Qué tenemos, Evidencias, Solicitudes |
 | Rol que necesitamos | Qué necesitamos, Evidencias, Solicitudes |
-| Rol de anuncios del centro y boletín informativo | Anuncios del centro, Boletín informativo, Evidencias, Solicitudes |
+| Rol de anuncios del centro | Anuncios del centro, Evidencias, Solicitudes |
+| Rol de boletín informativo | Boletín informativo, Evidencias, Solicitudes |
 | Rol de servicios | Servicios, Evidencias, Solicitudes |
 | Rol de inventario | Inventario, Evidencias, Solicitudes |
 | Rol de distribución | Distribución, Evidencias, Solicitudes |

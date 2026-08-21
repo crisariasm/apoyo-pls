@@ -38,11 +38,12 @@ export const Distributions: CollectionConfig = {
     { name: 'resourceName', type: 'text', label: 'Recurso', required: true },
     { name: 'quantity', type: 'number', label: 'Cantidad', required: true, min: 1 },
     { name: 'unit', type: 'text', label: 'Presentación / medida', required: true, admin: { placeholder: 'Ej.: cajas, kits, litros o unidades', description: 'Indica qué representa la cantidad distribuida.' } },
-    { name: 'date', type: 'date', label: 'Fecha', required: true, defaultValue: () => new Date().toISOString() },
+    { name: 'date', type: 'date', label: 'Fecha', required: true, index: true, defaultValue: () => new Date().toISOString() },
     { name: 'destination', type: 'text', label: 'Destino general', required: true },
     { name: 'organization', type: 'text', label: 'Equipo u organización receptora', required: true },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -53,7 +54,7 @@ export const Distributions: CollectionConfig = {
         { label: 'Entregado', value: 'entregado' },
       ],
     },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible en el reporte público', defaultValue: true },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible en el reporte público', defaultValue: true, index: true },
     { name: 'notes', type: 'textarea', label: 'Observaciones' },
     {
       name: 'evidence',

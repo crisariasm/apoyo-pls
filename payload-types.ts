@@ -158,7 +158,8 @@ export interface User {
     | 'super-admin'
     | 'que-tenemos'
     | 'que-necesitamos'
-    | 'anuncios-boletin'
+    | 'anuncios'
+    | 'boletin'
     | 'servicios'
     | 'inventario'
     | 'distribucion'
@@ -440,7 +441,8 @@ export interface DistributionEvidence {
   sourceType: 'distribucion' | 'otro';
   distribution?: (string | null) | Distribution;
   otherReference?: string | null;
-  image: string | Media;
+  image?: (string | null) | Media;
+  publicImagePath?: string | null;
   title: string;
   description: string;
   status: 'borrador' | 'publicado' | 'archivado';
@@ -505,6 +507,7 @@ export interface CommunityNotice {
     | 'vivienda'
     | 'otro';
   image?: (string | null) | Media;
+  publicImagePath?: string | null;
   location: string;
   contact: string;
   status: 'borrador' | 'publicado' | 'archivado';
@@ -627,10 +630,37 @@ export interface SupportRequest {
   requestType: 'recursos' | 'oferta' | 'transporte' | 'voluntariado';
   category: string;
   zone: string;
-  quantity?: string | null;
+  /**
+   * Opcional. Usa solo números enteros positivos.
+   */
+  quantity?: number | null;
+  /**
+   * Se necesita cuando indicas una cantidad.
+   */
+  quantityUnit?:
+    | (
+        | 'unidades'
+        | 'cajas'
+        | 'kits'
+        | 'paquetes'
+        | 'bultos'
+        | 'pares'
+        | 'pacas'
+        | 'canecas'
+        | 'litros'
+        | 'turnos'
+        | 'horas'
+        | 'recorridos'
+        | 'cupos'
+        | 'jornadas'
+      )
+    | null;
   description: string;
   contactName: string;
-  contactChannel: string;
+  /**
+   * Número para coordinar la ayuda. No se publica.
+   */
+  phone: string;
   status: 'pendiente' | 'en-revision' | 'asignada' | 'atendida' | 'cerrada';
   internalNotes?: string | null;
   privacyAccepted: boolean;
@@ -899,6 +929,7 @@ export interface DistributionEvidenceSelect<T extends boolean = true> {
   distribution?: T;
   otherReference?: T;
   image?: T;
+  publicImagePath?: T;
   title?: T;
   description?: T;
   status?: T;
@@ -940,6 +971,7 @@ export interface CommunityNoticesSelect<T extends boolean = true> {
   body?: T;
   category?: T;
   image?: T;
+  publicImagePath?: T;
   location?: T;
   contact?: T;
   status?: T;
@@ -1029,9 +1061,10 @@ export interface SupportRequestsSelect<T extends boolean = true> {
   category?: T;
   zone?: T;
   quantity?: T;
+  quantityUnit?: T;
   description?: T;
   contactName?: T;
-  contactChannel?: T;
+  phone?: T;
   status?: T;
   internalNotes?: T;
   privacyAccepted?: T;
@@ -1122,7 +1155,7 @@ export interface SiteSetting {
   centerStatus: 'abierto' | 'limitado' | 'cerrado';
   donationInstructions: string;
   heroMessage: string;
-  contactChannel: string;
+  phone: string;
   lastOperationalUpdate?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
@@ -1138,7 +1171,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
   centerStatus?: T;
   donationInstructions?: T;
   heroMessage?: T;
-  contactChannel?: T;
+  phone?: T;
   lastOperationalUpdate?: T;
   updatedAt?: T;
   createdAt?: T;

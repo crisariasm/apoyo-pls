@@ -3,13 +3,13 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
-/** Revalida las páginas públicas sin interrumpir formularios del portal operativo. */
-export function LiveRefresh({ interval = 5000, includeDashboard = false }: { interval?: number; includeDashboard?: boolean }) {
+/** Revalida las páginas públicas sin intervenir en el refresco central del portal operativo. */
+export function LiveRefresh({ interval = 15000 }: { interval?: number }) {
   const pathname = usePathname()
   const router = useRouter()
 
   useEffect(() => {
-    if ((pathname === '/equipo' && !includeDashboard) || pathname.startsWith('/equipo/')) return
+    if (pathname.startsWith('/equipo')) return
     let lastRefresh = 0
     const refresh = () => {
       if (document.visibilityState !== 'visible' || Date.now() - lastRefresh < 2000) return
@@ -24,7 +24,7 @@ export function LiveRefresh({ interval = 5000, includeDashboard = false }: { int
       window.removeEventListener('focus', refresh)
       document.removeEventListener('visibilitychange', refresh)
     }
-  }, [includeDashboard, interval, pathname, router])
+  }, [interval, pathname, router])
 
   return null
 }

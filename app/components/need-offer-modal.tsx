@@ -2,6 +2,12 @@
 
 import { FormEvent, useEffect, useId, useState } from 'react'
 
+import { validatePublicRequestForm, type PublicRequestFormErrors } from '../../lib/public-request-validation'
+
+function FieldError({ message }: { message?: string }) {
+  return message ? <span className="form-field-error">{message}</span> : null
+}
+
 type NeedOfferModalProps = {
   title: string
   zone?: string
@@ -13,8 +19,10 @@ export function NeedOfferModal({ title, zone = 'Pereira', quantity }: NeedOfferM
   const [state, setState] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
   const [contactName, setContactName] = useState('')
+  const [phone, setPhone] = useState('')
   const [amount, setAmount] = useState('1')
   const [privacyAccepted, setPrivacyAccepted] = useState(false)
+  const [errors, setErrors] = useState<PublicRequestFormErrors>({})
   const titleId = useId()
 
   useEffect(() => {
@@ -37,8 +45,10 @@ export function NeedOfferModal({ title, zone = 'Pereira', quantity }: NeedOfferM
     setState('idle')
     setMessage('')
     setContactName('')
+    setPhone('')
     setAmount('1')
     setPrivacyAccepted(false)
+    setErrors({})
     setOpen(true)
   }
 
@@ -55,6 +65,25 @@ export function NeedOfferModal({ title, zone = 'Pereira', quantity }: NeedOfferM
     const cleanName = contactName.trim()
     const cleanAmount = String(Math.max(1, Math.floor(Number(amount) || 1)))
     const note = String(form.get('message') || '').trim()
+    const description = note || `Tengo ${cleanAmount} de ${title}.`
+    const validationErrors = validatePublicRequestForm({
+      requestType: 'oferta',
+      helpType: 'ofrecer-ayuda',
+      category: title,
+      zone,
+      quantity: cleanAmount,
+      quantityUnit: 'unidades',
+      description,
+      contactName: cleanName,
+      phone,
+      privacyAccepted,
+    })
+    setErrors(validationErrors)
+    if (Object.keys(validationErrors).length) {
+      setState('error')
+      setMessage('Revisa los campos marcados antes de enviar tu disponibilidad.')
+      return
+    }
 
     try {
       const response = await fetch('/api/public/support-request', {
@@ -65,10 +94,11 @@ export function NeedOfferModal({ title, zone = 'Pereira', quantity }: NeedOfferM
           helpType: 'ofrecer-ayuda',
           category: title,
           zone,
-          quantity: cleanAmount,
-          description: note || `Tengo ${cleanAmount} de ${title}.`,
+          quantity: Number(cleanAmount),
+          quantityUnit: 'unidades',
+          description,
           contactName: cleanName,
-          contactChannel: 'Formulario Lo tengo',
+          phone: phone.trim(),
           privacyAccepted,
         }),
       })
@@ -101,16 +131,18 @@ export function NeedOfferModal({ title, zone = 'Pereira', quantity }: NeedOfferM
                 <button className="button button-primary" type="button" onClick={closeModal}>Cerrar</button>
               </div>
             ) : (
-              <form className="need-offer-form" onSubmit={submit}>
+              <form className="need-offer-form" onSubmit={submit} noValidate>
                 <div className="section-kicker green-text">Disponibilidad</div>
                 <h2 id={titleId}>Tengo este recurso</h2>
                 <p className="need-offer-selected"><strong>{title}</strong><span>{zone}{quantity ? ` · Meta: ${quantity}` : ''}</span></p>
                 {state === 'error' && <div className="form-error" role="alert">{message}</div>}
-                <label>Nombre<input name="contactName" required maxLength={160} value={contactName} onChange={(event) => setContactName(event.currentTarget.value)} placeholder="Tu nombre o el de la organización" autoComplete="name" /></label>
-                <label>Cantidad<input name="quantity" type="number" min="1" step="1" value={amount} onChange={(event) => setAmount(event.currentTarget.value === '' ? '' : String(Math.max(1, Math.floor(event.currentTarget.valueAsNumber || 1))))} onBlur={() => setAmount(String(Math.max(1, Math.floor(Number(amount) || 1))))} required inputMode="numeric" /></label>
+                <label>Nombre *<input name="contactName" maxLength={160} value={contactName} onChange={(event) => setContactName(event.currentTarget.value)} placeholder="Tu nombre o el de la organización" autoComplete="name" aria-invalid={Boolean(errors.contactName)} /><FieldError message={errors.contactName} /></label>
+                <label>Cantidad *<input name="quantity" type="number" min="1" max="1000000000" step="1" value={amount} onChange={(event) => setAmount(event.currentTarget.value === '' ? '' : String(Math.max(1, Math.floor(event.currentTarget.valueAsNumber || 1))))} onBlur={() => setAmount(String(Math.max(1, Math.floor(Number(amount) || 1))))} inputMode="numeric" aria-invalid={Boolean(errors.quantity)} /><FieldError message={errors.quantity} /></label>
                 <label>Mensaje<textarea name="message" maxLength={5000} placeholder="Cuéntanos cuándo podrías entregarlo." /></label>
-                <label className="check-label"><input type="checkbox" name="privacyAccepted" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.currentTarget.checked)} required /> Acepto que el equipo use estos datos para contactarme.</label>
-                <button className="button button-primary full-button" type="submit" disabled={state === 'sending' || !privacyAccepted || !contactName.trim() || !amount || Number(amount) < 1}>{state === 'sending' ? 'Enviando…' : 'Enviar mensaje'}</button>
+                <label>Teléfono *<input name="phone" type="tel" inputMode="tel" maxLength={20} value={phone} onChange={(event) => setPhone(event.currentTarget.value)} placeholder="Ej. 300 123 4567" autoComplete="tel" aria-invalid={Boolean(errors.phone)} /><FieldError message={errors.phone} /></label>
+                <label className="check-label"><input type="checkbox" name="privacyAccepted" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.currentTarget.checked)} /> <span>Acepto que el equipo use estos datos para contactarme.</span></label>
+                <FieldError message={errors.privacyAccepted} />
+                <button className="button button-primary full-button" type="submit" disabled={state === 'sending' || !privacyAccepted || !contactName.trim() || !phone.trim() || !amount || Number(amount) < 1}>{state === 'sending' ? 'Enviando…' : 'Enviar mensaje'}</button>
               </form>
             )}
           </section>

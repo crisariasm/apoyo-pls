@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 
 import config from '../../../../payload.config'
-import { InvalidRequestBodyError, isPlainRecord, isSameOriginRequest, readJsonBody, RequestBodyTooLargeError, textWithin } from '../../../../lib/input-security'
+import { InvalidRequestBodyError, checkRateLimit, getClientAddress, isPlainRecord, isSameOriginRequest, readJsonBody, readRequestBody, RequestBodyTooLargeError, textWithin } from '../../../../lib/input-security'
 import { optimizeImage } from '../../../../lib/image-processing'
 import { getStaffSession } from '../../../../lib/staff-portal-auth'
 import { createR2Key, deleteR2Object, isR2Enabled, putR2Object } from '../../../../lib/r2-storage'
@@ -13,6 +13,8 @@ export const dynamic = 'force-dynamic'
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 const MAX_MULTIPART_SIZE = MAX_IMAGE_SIZE + 256 * 1024
+const MEDIA_WRITE_RATE_LIMIT = 20
+const MEDIA_WRITE_RATE_WINDOW_MS = 15 * 60 * 1000
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
 function canUploadForContext(role: string, context: string) {
@@ -26,11 +28,37 @@ export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ message: 'Origen de solicitud no permitido.' }, { status: 403 })
   const session = await getStaffSession()
   if (!session) return NextResponse.json({ message: 'Necesitas iniciar sesión.' }, { status: 401 })
+  const userLimit = checkRateLimit(`media-upload-user:${session.user.id}`, MEDIA_WRITE_RATE_LIMIT, MEDIA_WRITE_RATE_WINDOW_MS)
+  const ipLimit = checkRateLimit(`media-upload-ip:${getClientAddress(request)}`, MEDIA_WRITE_RATE_LIMIT * 2, MEDIA_WRITE_RATE_WINDOW_MS)
+  if (!userLimit.allowed || !ipLimit.allowed) {
+    const retryAfter = Math.max(userLimit.retryAfter, ipLimit.retryAfter)
+    return NextResponse.json(
+      { message: 'Se alcanzó el límite temporal de cargas. Intenta nuevamente más tarde.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } },
+    )
+  }
   if (!isR2Enabled()) return NextResponse.json({ message: 'R2 no está configurado para recibir imágenes.' }, { status: 503 })
   const declaredLength = Number(request.headers.get('content-length') || 0)
   if (Number.isFinite(declaredLength) && declaredLength > MAX_MULTIPART_SIZE) return NextResponse.json({ message: 'La carga supera el límite permitido.' }, { status: 413 })
 
-  const formData = await request.formData()
+  const contentType = request.headers.get('content-type') || ''
+  if (!contentType.toLowerCase().startsWith('multipart/form-data;')) return NextResponse.json({ message: 'El formulario de imagen no es válido.' }, { status: 400 })
+
+  let rawBody: Uint8Array
+  try {
+    rawBody = await readRequestBody(request, MAX_MULTIPART_SIZE)
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) return NextResponse.json({ message: error.message }, { status: 413 })
+    return NextResponse.json({ message: 'No fue posible leer el formulario de imagen.' }, { status: 400 })
+  }
+
+  let formData: FormData
+  try {
+    const formRequest = new Request(request.url, { method: 'POST', headers: { 'content-type': contentType }, body: Buffer.from(rawBody) })
+    formData = await formRequest.formData()
+  } catch {
+    return NextResponse.json({ message: 'El formulario de imagen no es válido.' }, { status: 400 })
+  }
   const file = formData.get('file')
   const rawAlt = formData.get('alt')
   const context = formData.get('context')
@@ -78,6 +106,13 @@ export async function DELETE(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ message: 'Origen de solicitud no permitido.' }, { status: 403 })
   const session = await getStaffSession()
   if (!session) return NextResponse.json({ message: 'Necesitas iniciar sesión.' }, { status: 401 })
+  const rateLimit = checkRateLimit(`media-delete-user:${session.user.id}`, MEDIA_WRITE_RATE_LIMIT * 3, MEDIA_WRITE_RATE_WINDOW_MS)
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { message: 'Se alcanzó el límite temporal de cambios. Intenta nuevamente más tarde.' },
+      { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } },
+    )
+  }
   let body: { id?: string }
   try {
     body = await readJsonBody<{ id?: string }>(request, 16 * 1024)

@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 
 import config from '../../../../payload.config'
 import { checkRateLimit, getClientAddress, isPlainRecord, isSameOriginRequest, readJsonBody, textWithin } from '../../../../lib/input-security'
+import { isValidPhone, isValidQuantity, isValidQuantityUnit, normalizePhone, quantityValue } from '../../../../lib/public-request-validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,13 +39,29 @@ export async function POST(request: Request) {
   const helpType = typeof body.helpType === 'string' ? body.helpType : ''
   const category = textWithin(body.category, 120, true)
   const zone = textWithin(body.zone, 160, true)
-  const quantity = textWithin(body.quantity, 80)
+  const quantityProvided = body.quantity !== undefined && body.quantity !== null && body.quantity !== ''
+  const quantityUnit = textWithin(body.quantityUnit, 40)
   const description = textWithin(body.description, 5000, true)
   const contactName = textWithin(body.contactName, 160, true)
-  const contactChannel = textWithin(body.contactChannel, 200, true)
-  if (!isHelpType(helpType) || !isSupportRequestType(requestType) || !category || !zone || !description || !contactName || !contactChannel || body.privacyAccepted !== true) {
-    return NextResponse.json({ error: 'Completa los campos obligatorios y acepta el aviso de privacidad.' }, { status: 400 })
+  const phone = textWithin(body.phone, 20, true)
+  const errors: string[] = []
+  if (!isHelpType(helpType)) errors.push('Selecciona un tipo de ayuda válido.')
+  if (!isSupportRequestType(requestType)) errors.push('Selecciona un tipo de solicitud válido.')
+  if (isHelpType(helpType) && isSupportRequestType(requestType)) {
+    if (helpType === 'ofrecer-ayuda' && requestType === 'recursos') errors.push('El tipo de ayuda no coincide con la solicitud.')
+    if (helpType === 'necesitar-ayuda' && ['oferta', 'voluntariado'].includes(requestType)) errors.push('El tipo de ayuda no coincide con la solicitud.')
   }
+  if (!category) errors.push('Indica la categoría.')
+  if (!zone) errors.push('Indica la zona o barrio.')
+  if (!description) errors.push('Escribe el detalle de la solicitud.')
+  if (!contactName) errors.push('Escribe el nombre de contacto.')
+  if (!phone || !isValidPhone(phone)) errors.push('Escribe un número de teléfono válido.')
+  if (quantityProvided && !isValidQuantity(body.quantity)) errors.push('La cantidad debe ser un número entero entre 1 y 1.000.000.000.')
+  if (quantityProvided && !quantityUnit) errors.push('Selecciona la unidad de la cantidad.')
+  if (!quantityProvided && quantityUnit) errors.push('Indica la cantidad antes de seleccionar una unidad.')
+  if (quantityUnit && !isValidQuantityUnit(quantityUnit)) errors.push('Selecciona una unidad válida.')
+  if (body.privacyAccepted !== true) errors.push('Debes aceptar el aviso de privacidad.')
+  if (errors.length) return NextResponse.json({ error: errors[0], fields: errors }, { status: 400 })
 
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ ok: false, mode: 'unavailable', message: 'El centro todavía no tiene habilitada la base de datos para recibir solicitudes.' }, { status: 503 })
@@ -59,12 +76,14 @@ export async function POST(request: Request) {
         helpType,
         category,
         zone,
-        ...(quantity ? { quantity } : {}),
+        ...(quantityProvided ? { quantity: quantityValue(body.quantity) } : {}),
+        ...(quantityUnit ? { quantityUnit } : {}),
         description,
         contactName,
-        contactChannel,
+        phone: normalizePhone(phone || ''),
         privacyAccepted: true,
       } as never,
+      overrideAccess: true,
     })
     return NextResponse.json({ ok: true, id: doc.id, message: 'Solicitud recibida correctamente.' }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
   } catch {

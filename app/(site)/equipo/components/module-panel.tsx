@@ -1,10 +1,11 @@
 'use client'
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { PortalField, PortalModule } from '../../../../lib/staff-portal-config'
 import { getPortalFieldMaxLength, normalizePortalData, validatePortalData } from '../../../../lib/staff-portal-validation'
 import { MediaField, type MediaValue } from './media-field'
+import { useStaffModuleRefresh } from './staff-live-refresh'
 
 type RecordData = Record<string, unknown>
 type ApiResult = { docs?: RecordData[]; doc?: RecordData; page?: number; totalPages?: number; totalDocs?: number; message?: string }
@@ -78,7 +79,9 @@ function fieldLabel(module: PortalModule, field: string) {
 }
 
 function auditActorLabel(value: unknown) {
-  return value === 'Seeder inicial PLs al llamado' ? 'Carga inicial del sistema' : displayValue(value)
+  return value === 'Seeder inicial PLs al llamado' || value === 'Administrador de prueba' || value === 'Carga inicial del sistema'
+    ? 'Carga inicial del sistema'
+    : displayValue(value)
 }
 
 function hasFieldValue(field: PortalField, value: unknown) {
@@ -143,6 +146,9 @@ export function StaffModulePanel({
   const [saving, setSaving] = useState(false)
   const [pageLoading, setPageLoading] = useState(false)
   const [removedMediaIds, setRemovedMediaIds] = useState<string[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const createCardRef = useRef<HTMLElement | null>(null)
+  const recordsCardRef = useRef<HTMLElement | null>(null)
 
   const formComplete = useMemo(() => formIsComplete(module, form), [module, form])
   const formChanged = useMemo(() => {
@@ -150,6 +156,18 @@ export function StaffModulePanel({
     return module.fields.some((field) => !valuesEqual(form[field.name], originalForm[field.name])) || removedMediaIds.length > 0
   }, [editingId, form, module.fields, originalForm, removedMediaIds.length])
   const canSubmit = formComplete && (!editingId || formChanged)
+
+  useStaffModuleRefresh({
+    url: `/api/equipo/${module.slug}?page=${currentPage}&limit=8`,
+    enabled: !editingId && !saving,
+    onData: (result) => {
+      if (!result.docs) return
+      setRecords(result.docs)
+      setCurrentPage(result.page || currentPage)
+      setTotalPages(Math.max(result.totalPages || 1, 1))
+      setTotalDocs(result.totalDocs || 0)
+    },
+  })
 
   const editingRecord = useMemo(() => editingId ? records.find((record) => String(record.id) === String(editingId)) : null, [editingId, records])
 
@@ -178,6 +196,15 @@ export function StaffModulePanel({
     setOriginalForm(null)
     setRemovedMediaIds([])
     clearFeedback()
+    setCreateOpen(true)
+    window.requestAnimationFrame(() => createCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  function toggleCreate() {
+    const nextOpen = !createOpen
+    if (nextOpen) clearFeedback()
+    setCreateOpen(nextOpen)
+    if (nextOpen) window.requestAnimationFrame(() => createCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
   function beginEdit(record: RecordData) {
@@ -235,22 +262,6 @@ export function StaffModulePanel({
       setPageLoading(false)
     }
   }, [module.slug])
-
-  useEffect(() => {
-    if (editingId || saving) return
-    let cancelled = false
-    const refreshRecords = async () => {
-      if (cancelled || document.visibilityState !== 'visible') return
-      await loadPage(currentPage)
-    }
-    const interval = window.setInterval(refreshRecords, 5000)
-    window.addEventListener('focus', refreshRecords)
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-      window.removeEventListener('focus', refreshRecords)
-    }
-  }, [currentPage, editingId, loadPage, saving])
 
   async function uploadMedia(file: File, alt: string, createdIds: string[], context: string) {
     const body = new FormData()
@@ -331,6 +342,8 @@ export function StaffModulePanel({
         setRemovedMediaIds([])
         await loadPage(1)
         setMessage('Registro creado y listo para revisión.')
+        setCreateOpen(false)
+        window.requestAnimationFrame(() => recordsCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
       }
     } catch (error) {
       if (!recordSaved) await Promise.all(createdMediaIds.map((id) => deleteMedia(id).catch(() => undefined)))
@@ -364,20 +377,26 @@ export function StaffModulePanel({
   return (
     <>
       <div className="staff-module-layout">
-        <section className="staff-editor-card" aria-labelledby="staff-editor-title">
+        <section ref={createCardRef} className={`staff-editor-card${module.canCreate !== false ? ' is-create-card' : ''}${createOpen ? ' is-create-open' : ''}`} aria-labelledby="staff-editor-title">
           <div className="staff-card-heading">
             <div><p className="staff-eyebrow">Captura de información</p><h2 id="staff-editor-title">{module.canCreate === false ? 'Revisión de solicitudes' : 'Nuevo registro'}</h2></div>
             {module.canCreate !== false && <button className="staff-outline-button" type="button" onClick={beginCreate}>Limpiar</button>}
           </div>
-          {module.canCreate === false ? <p className="staff-form-help">Estas solicitudes llegan desde la página pública. Selecciona un registro para actualizar su estado o agregar notas internas.</p> : <form className="staff-record-form" onSubmit={save}><RecordFields module={module} form={form} onChange={updateField} onRemoveMedia={rememberRemovedMedia} /><Feedback error={error} message={message} /><button className="staff-primary-button" type="submit" disabled={saving || !canSubmit}>{saving ? 'Guardando…' : 'Crear registro'}</button></form>}
+          {module.canCreate === false ? <p className="staff-form-help">Estas solicitudes llegan desde la página pública. Selecciona un registro para actualizar su estado o agregar notas internas.</p> : <>
+            <button className="staff-mobile-create-toggle" type="button" aria-expanded={createOpen} aria-controls={`staff-create-form-${module.slug}`} onClick={toggleCreate}><span>{createOpen ? 'Ocultar formulario' : `Crear ${module.label.toLocaleLowerCase('es-CO')}`}</span><strong aria-hidden="true">{createOpen ? '−' : '+'}</strong></button>
+            <div className="staff-create-form-shell" id={`staff-create-form-${module.slug}`}>
+              <form className="staff-record-form" onSubmit={save}><RecordFields module={module} form={form} onChange={updateField} onRemoveMedia={rememberRemovedMedia} /><Feedback error={error} message={message} /><button className="staff-primary-button" type="submit" disabled={saving || !canSubmit}>{saving ? 'Guardando…' : 'Crear registro'}</button></form>
+            </div>
+            {!createOpen && message && <p className="staff-form-success staff-mobile-create-result" role="status">{message}</p>}
+          </>}
         </section>
-        <section className="staff-records-card" aria-labelledby="staff-records-title">
+        <section ref={recordsCardRef} className="staff-records-card" aria-labelledby="staff-records-title">
           <div className="staff-card-heading">
             <div><p className="staff-eyebrow">Registros guardados</p><h2 id="staff-records-title">{totalDocs} elementos</h2></div>
           </div>
           <div className={`staff-record-list${pageLoading ? ' is-loading' : ''}`} aria-live="polite">
             {records.length === 0 && <p className="staff-empty-state">Todavía no hay registros en este módulo.</p>}
-            {records.map((record) => <article className="staff-record-item" key={String(record.id)}><div className="staff-record-copy"><h3>{displayValue(record[module.titleField])}</h3><div className="staff-record-meta">{module.summaryFields.map((field) => <span className={field === 'status' ? 'staff-record-status' : undefined} key={field}><small>{fieldLabel(module, field)}:</small> {displayFieldValue(field, record[field])}</span>)}{Object.prototype.hasOwnProperty.call(record, 'publicVisible') && <span><small>Visibilidad:</small> {displayFieldValue('publicVisible', record.publicVisible)}</span>}<span className="staff-record-audit">Registrado por: {auditActorLabel(record.registeredBy)}</span></div></div><div className="staff-record-actions"><button className="staff-icon-button staff-edit-button" type="button" aria-label={`Editar ${displayValue(record[module.titleField])}`} title="Editar registro" onClick={() => beginEdit(record)}><span className="staff-pencil-icon" aria-hidden="true" /><span className="staff-action-label">Editar</span></button>{module.canDelete !== false && <button className="staff-icon-button staff-delete-button" type="button" aria-label={`Eliminar ${displayValue(record[module.titleField])}`} title="Eliminar registro" disabled={saving} onClick={() => remove(record)}><span className="staff-trash-icon" aria-hidden="true" /><span className="staff-action-label">Eliminar</span></button>}</div></article>)}
+            {records.map((record) => <article className="staff-record-item" key={String(record.id)}><div className="staff-record-copy"><h3>{displayValue(record[module.titleField])}</h3><div className="staff-record-meta">{module.summaryFields.map((field) => <span className={field === 'status' ? 'staff-record-status' : undefined} key={field}><small>{fieldLabel(module, field)}:</small> {displayFieldValue(field, record[field])}</span>)}{Object.prototype.hasOwnProperty.call(record, 'publicVisible') && <span><small>Visibilidad:</small> {displayFieldValue('publicVisible', record.publicVisible)}</span>}<span className="staff-record-audit">Registrado por: {auditActorLabel(record.registeredBy)}</span>{Object.prototype.hasOwnProperty.call(record, 'updatedBy') && <span className="staff-record-audit">Actualizado por: {auditActorLabel(record.updatedBy)}</span>}</div></div><div className="staff-record-actions"><button className="staff-icon-button staff-edit-button" type="button" aria-label={`Editar ${displayValue(record[module.titleField])}`} title="Editar registro" onClick={() => beginEdit(record)}><span className="staff-pencil-icon" aria-hidden="true" /><span className="staff-action-label">Editar</span></button>{module.canDelete !== false && <button className="staff-icon-button staff-delete-button" type="button" aria-label={`Eliminar ${displayValue(record[module.titleField])}`} title="Eliminar registro" disabled={saving} onClick={() => remove(record)}><span className="staff-trash-icon" aria-hidden="true" /><span className="staff-action-label">Eliminar</span></button>}</div></article>)}
           </div>
           <Pagination currentPage={currentPage} totalPages={totalPages} loading={pageLoading} onChange={(page) => { closeEdit(); void loadPage(page) }} />
         </section>

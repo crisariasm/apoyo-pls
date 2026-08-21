@@ -3,6 +3,9 @@ import Link from 'next/link'
 import { PageIntro } from '../../components/page-intro'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
+import { pageMetadata } from '../../../lib/site-metadata'
+
+export const metadata = pageMetadata('Solicitar apoyo', 'Envía una solicitud de apoyo al equipo del centro de acopio PLs al llamado.', '/solicitar-apoyo')
 import { SupportForm } from '../../components/support-form'
 
 export default function RequestSupportPage() {

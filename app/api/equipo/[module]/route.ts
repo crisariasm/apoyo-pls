@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { canAccessModule, getPortalModule } from '../../../../lib/staff-portal-config'
-import { InvalidRequestBodyError, isPlainRecord, isSameOriginRequest, readJsonBody, RequestBodyTooLargeError } from '../../../../lib/input-security'
+import { InvalidRequestBodyError, checkRateLimit, getClientAddress, isPlainRecord, isSameOriginRequest, readJsonBody, RequestBodyTooLargeError } from '../../../../lib/input-security'
 import { getPortalOwnershipWhere, getStaffSession, ownsPortalRecord } from '../../../../lib/staff-portal-auth'
 import { normalizePortalData, validatePortalData } from '../../../../lib/staff-portal-validation'
 import { isUUID } from '../../../../lib/uuid'
@@ -26,6 +26,8 @@ function cleanData(module: NonNullable<ReturnType<typeof getPortalModule>>, body
 const DEFAULT_PAGE_SIZE = 8
 const MAX_PAGE_SIZE = 20
 const MAX_PORTAL_JSON_BYTES = 512 * 1024
+const WRITE_RATE_LIMIT = 80
+const WRITE_RATE_WINDOW_MS = 15 * 60 * 1000
 
 function bodyError(error: unknown) {
   if (error instanceof RequestBodyTooLargeError) return NextResponse.json({ message: error.message }, { status: 413 })
@@ -33,10 +35,40 @@ function bodyError(error: unknown) {
   return NextResponse.json({ message: 'No fue posible leer el contenido enviado.' }, { status: 400 })
 }
 
+function writeRateLimitResponse(request: Request, session: Awaited<ReturnType<typeof getStaffSession>>, module: NonNullable<ReturnType<typeof getPortalModule>>) {
+  if (!session) return null
+
+  const userLimit = checkRateLimit(`portal-write-user:${session.user.id}:${module.slug}`, WRITE_RATE_LIMIT, WRITE_RATE_WINDOW_MS)
+  const ipLimit = checkRateLimit(`portal-write-ip:${getClientAddress(request)}:${module.slug}`, WRITE_RATE_LIMIT * 2, WRITE_RATE_WINDOW_MS)
+  if (userLimit.allowed && ipLimit.allowed) return null
+
+  const retryAfter = Math.max(userLimit.retryAfter, ipLimit.retryAfter)
+  return NextResponse.json(
+    { message: 'Se alcanzó el límite temporal de cambios. Intenta nuevamente más tarde.' },
+    { status: 429, headers: { 'Retry-After': String(retryAfter) } },
+  )
+}
+
 export async function GET(request: Request, context: RouteContext) {
   const authorized = await getAuthorizedModule(context)
   if (!authorized) return NextResponse.json({ message: 'No tienes acceso a este módulo.' }, { status: 403 })
   const url = new URL(request.url)
+  if (authorized.module.slug === 'administracion' && url.searchParams.get('summary') === 'pending') {
+    try {
+      const result = await authorized.payload.find({ collection: authorized.module.collection, where: { status: { equals: 'pendiente' } }, limit: 1, page: 1, sort: '-createdAt', overrideAccess: true, user: authorized.user })
+      const latest = result.docs[0] as unknown as Record<string, unknown> | undefined
+      const requestType = typeof latest?.requestType === 'string' ? latest.requestType : ''
+      const inferredHelpType = typeof latest?.helpType === 'string'
+        ? latest.helpType
+        : ['oferta', 'transporte', 'voluntariado'].includes(requestType) ? 'ofrecer-ayuda' : 'necesitar-ayuda'
+      return NextResponse.json({
+        pending: result.totalDocs,
+        latest: latest ? { id: latest.id, helpType: inferredHelpType, createdAt: latest.createdAt } : null,
+      })
+    } catch {
+      return NextResponse.json({ message: 'No fue posible consultar las solicitudes pendientes.' }, { status: 500 })
+    }
+  }
   const page = Math.max(Number.parseInt(url.searchParams.get('page') || '1', 10) || 1, 1)
   const requestedLimit = Number.parseInt(url.searchParams.get('limit') || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE
   const limit = Math.min(Math.max(requestedLimit, 1), MAX_PAGE_SIZE)
@@ -53,6 +85,8 @@ export async function POST(request: Request, context: RouteContext) {
   const authorized = await getAuthorizedModule(context)
   if (!authorized) return NextResponse.json({ message: 'No tienes acceso a este módulo.' }, { status: 403 })
   if (authorized.module.canCreate === false) return NextResponse.json({ message: 'Este módulo no recibe registros nuevos.' }, { status: 405 })
+  const rateLimitResponse = writeRateLimitResponse(request, authorized, authorized.module)
+  if (rateLimitResponse) return rateLimitResponse
   let body: Record<string, unknown>
   try {
     body = await readJsonBody<Record<string, unknown>>(request, MAX_PORTAL_JSON_BYTES)
@@ -75,6 +109,8 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ message: 'Origen de solicitud no permitido.' }, { status: 403 })
   const authorized = await getAuthorizedModule(context)
   if (!authorized) return NextResponse.json({ message: 'No tienes acceso a este módulo.' }, { status: 403 })
+  const rateLimitResponse = writeRateLimitResponse(request, authorized, authorized.module)
+  if (rateLimitResponse) return rateLimitResponse
   let body: Record<string, unknown>
   try {
     body = await readJsonBody<Record<string, unknown>>(request, MAX_PORTAL_JSON_BYTES)
@@ -111,6 +147,8 @@ export async function DELETE(request: Request, context: RouteContext) {
   const authorized = await getAuthorizedModule(context)
   if (!authorized) return NextResponse.json({ message: 'No tienes acceso a este módulo.' }, { status: 403 })
   if (authorized.module.canDelete === false) return NextResponse.json({ message: 'Este módulo no permite eliminar registros.' }, { status: 405 })
+  const rateLimitResponse = writeRateLimitResponse(request, authorized, authorized.module)
+  if (rateLimitResponse) return rateLimitResponse
   let body: { id?: string }
   try {
     body = await readJsonBody<{ id?: string }>(request, 16 * 1024)

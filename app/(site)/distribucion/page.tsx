@@ -3,15 +3,17 @@ import { PageIntro } from '../../components/page-intro'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
 import { getOverview } from '../../../lib/public-api'
+import { pageMetadata } from '../../../lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
+export const metadata = pageMetadata('Distribución y evidencias', 'Consulta las salidas de ayuda y el registro visual de la operación comunitaria.', '/distribucion')
 
 function statusClass(status: string) {
   return status.toLowerCase().replaceAll(' ', '-')
 }
 
 export default async function DistributionPage() {
-  const data = await getOverview()
+  const data = await getOverview({ sections: ['distributions', 'evidences'] })
   const distributions = data.distributions
   const evidence = data.evidences.map((entry) => ({ ...entry, title: `${entry.source} · ${entry.title}` }))
   const delivered = distributions.filter((item) => item.status === 'Entregado').length

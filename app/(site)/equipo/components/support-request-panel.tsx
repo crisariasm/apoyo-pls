@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
+import { useStaffModuleRefresh } from './staff-live-refresh'
+
 type RecordData = Record<string, unknown>
 
 const statusLabels: Record<string, string> = {
@@ -36,11 +38,35 @@ function value(value: unknown) {
   return String(value)
 }
 
+function quantityValue(record: RecordData) {
+  if (record.quantity === null || record.quantity === undefined || record.quantity === '') return 'Sin cantidad'
+  const unit = typeof record.quantityUnit === 'string' && record.quantityUnit ? ` ${record.quantityUnit}` : ''
+  return `${String(record.quantity)}${unit}`
+}
+
 function dateValue(value: unknown) {
   if (!value) return 'Sin fecha'
   const date = new Date(String(value))
   if (Number.isNaN(date.getTime())) return String(value)
   return date.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function relativeElapsed(value: unknown, now: number) {
+  if (!value) return 'Fecha desconocida'
+  const createdAt = new Date(String(value)).getTime()
+  if (!Number.isFinite(createdAt)) return 'Fecha desconocida'
+  const totalMinutes = Math.max(0, Math.floor((now - createdAt) / 60_000))
+  if (totalMinutes < 1) return 'Hace menos de un minuto'
+  if (totalMinutes < 60) return `Hace ${totalMinutes} ${totalMinutes === 1 ? 'minuto' : 'minutos'}`
+
+  const totalHours = Math.floor(totalMinutes / 60)
+  const days = Math.floor(totalHours / 24)
+  const hours = totalHours % 24
+  if (days > 0) {
+    const dayLabel = `${days} ${days === 1 ? 'día' : 'días'}`
+    return hours > 0 ? `Hace ${dayLabel} y ${hours} ${hours === 1 ? 'hora' : 'horas'}` : `Hace ${dayLabel}`
+  }
+  return `Hace ${totalHours} ${totalHours === 1 ? 'hora' : 'horas'}`
 }
 
 function statusClass(status: unknown) {
@@ -60,31 +86,24 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [now, setNow] = useState(() => Date.now())
 
   const inbox = useMemo(() => records.filter((record) => record.status === 'pendiente'), [records])
   const saved = useMemo(() => records.filter((record) => record.status !== 'pendiente'), [records])
   const canSaveSelected = Boolean(selected && canManage && (selected.status === 'pendiente' || status !== selected.status || internalNotes !== (typeof selected.internalNotes === 'string' ? selected.internalNotes : '')))
 
+  useStaffModuleRefresh({
+    url: '/api/equipo/administracion?limit=20&page=1',
+    enabled: !selected && !saving,
+    onData: (result) => {
+      if (result.docs) setRecords(result.docs)
+    },
+  })
+
   useEffect(() => {
-    if (selected || saving) return
-    let cancelled = false
-    const refreshRequests = async () => {
-      try {
-        const response = await fetch('/api/equipo/administracion?limit=20&page=1', { cache: 'no-store' })
-        const result = await response.json() as { docs?: RecordData[] }
-        if (response.ok && result.docs && !cancelled) setRecords(result.docs)
-      } catch {
-        // La información visible se conserva si una actualización automática falla.
-      }
-    }
-    const interval = window.setInterval(refreshRequests, 5000)
-    window.addEventListener('focus', refreshRequests)
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-      window.removeEventListener('focus', refreshRequests)
-    }
-  }, [selected, saving])
+    const interval = window.setInterval(() => setNow(Date.now()), 30_000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   function openRecord(record: RecordData) {
     setSelected(record)
@@ -161,7 +180,7 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
           <p className="staff-form-help">Las solicitudes de la página pública llegan aquí. Ábrelas para leer toda la información, guardar su gestión o eliminarlas.</p>
           <div className="staff-request-list" aria-live="polite">
             {inbox.length === 0 && <p className="staff-empty-state">No hay solicitudes pendientes de revisión.</p>}
-            {inbox.map((record) => <RequestCard key={String(record.id)} record={record} onOpen={openRecord} />)}
+            {inbox.map((record) => <RequestCard key={String(record.id)} record={record} onOpen={openRecord} now={now} />)}
           </div>
         </section>
 
@@ -174,7 +193,7 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
           {error && !selected && <p className="staff-form-error" role="alert">{error}</p>}
           <div className="staff-request-list" aria-live="polite">
             {saved.length === 0 && <p className="staff-empty-state">Cuando guardes una solicitud, aparecerá aquí.</p>}
-            {saved.map((record) => <RequestCard key={String(record.id)} record={record} onOpen={openRecord} saved />)}
+            {saved.map((record) => <RequestCard key={String(record.id)} record={record} onOpen={openRecord} saved now={now} />)}
           </div>
         </section>
       </div>
@@ -189,11 +208,11 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
             <Detail label="Tipo de ayuda" value={label(helpType(selected), helpTypeLabels)} />
             <Detail label="Categoría" value={selected.category} />
             <Detail label="Zona o barrio" value={selected.zone} />
-            <Detail label="Cantidad aproximada" value={selected.quantity} />
+            <Detail label="Cantidad aproximada" value={quantityValue(selected)} />
             <Detail label="Nombre de contacto" value={selected.contactName} />
-            <Detail label="Canal de contacto" value={selected.contactChannel} />
+            <Detail label="Teléfono" value={selected.phone} />
             <Detail label="Aceptó privacidad" value={selected.privacyAccepted} />
-            <Detail label="Recibida" value={dateValue(selected.createdAt)} />
+            <Detail label="Reportada" value={`${relativeElapsed(selected.createdAt, now)} · ${dateValue(selected.createdAt)}`} />
             <Detail label="Registrada por" value={selected.registeredBy || 'Formulario público'} />
             <Detail label="Última actualización" value={dateValue(selected.updatedAt)} />
             <Detail label="Actualizada por" value={selected.updatedBy || 'Sin actualización'} />
@@ -211,10 +230,10 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
   )
 }
 
-function RequestCard({ record, onOpen, saved = false }: { record: RecordData; onOpen: (record: RecordData) => void; saved?: boolean }) {
+function RequestCard({ record, onOpen, saved = false, now }: { record: RecordData; onOpen: (record: RecordData) => void; saved?: boolean; now: number }) {
   const status = typeof record.status === 'string' ? record.status : 'pendiente'
   return <article className="staff-request-item">
-    <div className="staff-request-copy"><div className="staff-request-item-heading"><div><span className="staff-request-kind">{label(helpType(record), helpTypeLabels)}</span><h3>{label(record.requestType, requestTypeLabels)}</h3></div><span className={`staff-request-status ${statusClass(status)}`}>{label(status, statusLabels)}</span></div><p>{value(record.category)} · {value(record.zone)}</p><small>{dateValue(record.createdAt)} · {saved ? `Registrada por ${value(record.registeredBy || 'Formulario público')}` : 'Pendiente de lectura'}</small></div>
+    <div className="staff-request-copy"><div className="staff-request-item-heading"><div><span className="staff-request-kind">{label(helpType(record), helpTypeLabels)}</span><h3>{label(record.requestType, requestTypeLabels)}</h3></div><span className={`staff-request-status ${statusClass(status)}`}>{label(status, statusLabels)}</span></div><p>{value(record.category)} · {value(record.zone)}</p><small><time dateTime={typeof record.createdAt === 'string' ? record.createdAt : undefined}>{relativeElapsed(record.createdAt, now)} · {dateValue(record.createdAt)}</time> · {saved ? `Registrada por ${value(record.registeredBy || 'Formulario público')}` : 'Pendiente de lectura'}</small></div>
     <button className="staff-outline-button" type="button" onClick={() => onOpen(record)}>{saved ? 'Ver información' : 'Abrir solicitud'}</button>
   </article>
 }

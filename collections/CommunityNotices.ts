@@ -1,6 +1,20 @@
-import type { CollectionConfig } from 'payload'
+import { ValidationError, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
 import { canManageNotices, isPayloadAdminUser, publicStatusRead } from '../lib/access'
+
+const validateNoticeImage: CollectionBeforeValidateHook = ({ data, operation, req }) => {
+  const isSeedContext = req.context?.seed === true
+  const publicImagePath = typeof data?.publicImagePath === 'string' ? data.publicImagePath.trim() : ''
+  const imageWasSubmitted = data ? Object.prototype.hasOwnProperty.call(data, 'image') : false
+  if (publicImagePath && !isSeedContext) {
+    throw new ValidationError({ collection: 'community-notices', errors: [{ path: 'image', message: 'La ruta pública de imagen solo puede ser usada por el seeder.' }], req })
+  }
+  const hasImage = Boolean(data?.image) || (isSeedContext && publicImagePath !== '')
+  if ((operation === 'create' || imageWasSubmitted) && !hasImage) {
+    throw new ValidationError({ collection: 'community-notices', errors: [{ path: 'image', message: 'La imagen es obligatoria.' }], req })
+  }
+  return data
+}
 
 export const CommunityNotices: CollectionConfig = {
   slug: 'community-notices',
@@ -17,6 +31,7 @@ export const CommunityNotices: CollectionConfig = {
     update: canManageNotices,
     delete: canManageNotices,
   },
+  hooks: { beforeValidate: [validateNoticeImage] },
   fields: [
     { name: 'title', type: 'text', label: 'Título', required: true },
     { name: 'body', type: 'textarea', label: 'Descripción', required: true },
@@ -36,10 +51,12 @@ export const CommunityNotices: CollectionConfig = {
       ],
     },
     { name: 'image', type: 'upload', relationTo: 'media', label: 'Imagen' },
+    { name: 'publicImagePath', type: 'text', label: 'Ruta de imagen pública', maxLength: 255, admin: { hidden: true, readOnly: true } },
     { name: 'location', type: 'text', label: 'Zona general', required: true },
     { name: 'contact', type: 'text', label: 'Canal o responsable', required: true },
     {
       name: 'status',
+      index: true,
       type: 'select',
       label: 'Estado',
       required: true,
@@ -50,8 +67,8 @@ export const CommunityNotices: CollectionConfig = {
         { label: 'Archivado', value: 'archivado' },
       ],
     },
-    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false },
-    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true },
-    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación' },
+    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, index: true },
+    { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true, index: true },
+    { name: 'publishedAt', type: 'date', label: 'Fecha de publicación', index: true },
   ],
 }

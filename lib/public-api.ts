@@ -41,7 +41,7 @@ const emptyOverview: PublicOverview = {
     hours: 'Horario pendiente de actualización',
     status: 'pendiente',
     lastUpdate: 'Sin actualización disponible',
-    contact: 'Canal de contacto pendiente de actualización',
+    contact: 'Teléfono del centro pendiente de actualización',
   },
   metrics: { received: '0', available: '0', distributed: '0', volunteers: '0' },
   resources: [], aidIntakes: [], needs: [], announcements: [], distributions: [], evidences: [], activities: [], communityNotices: [], services: [], bulletins: [], mode: 'unavailable',
@@ -107,10 +107,20 @@ function metricLabel(value: number) {
   return value.toLocaleString('es-CO')
 }
 
-function featuredFirst<T extends PayloadLike>(docs: T[]) {
-  return [...docs].sort((left, right) => Number(Boolean(right.featured)) - Number(Boolean(left.featured)))
-}
+export type PublicOverviewSection =
+  | 'resources'
+  | 'aidIntakes'
+  | 'needs'
+  | 'announcements'
+  | 'distributions'
+  | 'evidences'
+  | 'activities'
+  | 'communityNotices'
+  | 'services'
+  | 'bulletins'
 
+// El frontend limita visualmente las listas mediante contenedores desplazables;
+// mantenemos este margen para no ocultar registros públicos cuando crecen.
 const publicLimit = 100
 
 function mediaUrl(value: unknown, fallback = '/hero-PLs-al-llamado.png') {
@@ -131,12 +141,14 @@ function relationId(value: unknown) {
   return ''
 }
 
-export async function getOverview(): Promise<PublicOverview> {
+export async function getOverview(options: { sections?: readonly PublicOverviewSection[] } = {}): Promise<PublicOverview> {
   noStore()
   if (!hasDatabase) return emptyOverview
 
   try {
     const payload = await getPayload({ config })
+    const requestedSections = options.sections ? new Set(options.sections) : null
+    const wants = (section: PublicOverviewSection) => requestedSections === null || requestedSections.has(section)
     // Cada módulo se consulta de forma aislada. Así un problema puntual en una
     // colección no hace que desaparezca toda la información pública.
     const safeFind = async (query: Record<string, unknown>) => {
@@ -156,26 +168,28 @@ export async function getOverview(): Promise<PublicOverview> {
     }
 
     const [resourceDocsRaw, aidIntakeDocsRaw, needDocsRaw, announcementDocsRaw, distributionDocs, evidenceDocs, activityDocs, noticeDocsRaw, serviceDocsRaw, bulletinDocsRaw, settingsData] = await Promise.all([
-      safeFind({ collection: 'resources', where: { publicVisible: { equals: true } }, limit: publicLimit, sort: ['-featured', '-updatedAt', '-createdAt'] }),
-      safeFind({ collection: 'aid-intakes', where: { publicVisible: { equals: true } }, limit: publicLimit, sort: ['-featured', '-receivedAt', '-createdAt'] }),
-      safeFind({ collection: 'needs', where: { and: [{ publicVisible: { equals: true } }, { status: { not_equals: 'cerrada' } }] }, limit: publicLimit, sort: ['-featured', '-updatedAt', '-createdAt'] }),
-      safeFind({ collection: 'announcements', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }),
-      safeFind({ collection: 'distributions', depth: 1, where: { publicVisible: { equals: true } }, limit: publicLimit, sort: ['-date', '-createdAt'] }),
-      safeFind({ collection: 'distribution-evidence', depth: 2, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-publishedAt', '-createdAt'] }),
-      safeFind({ collection: 'volunteer-activities', where: { and: [{ status: { equals: 'abierta' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['date', '-createdAt'] }),
-      safeFind({ collection: 'community-notices', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }, { category: { not_equals: 'mascota-perdida' } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }),
-      safeFind({ collection: 'services', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }),
-      safeFind({ collection: 'bulletins', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }),
+      wants('resources') ? safeFind({ collection: 'resources', depth: 0, where: { publicVisible: { equals: true } }, limit: publicLimit, sort: ['-featured', '-updatedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('aidIntakes') ? safeFind({ collection: 'aid-intakes', depth: 0, where: { publicVisible: { equals: true } }, limit: publicLimit, sort: ['-featured', '-receivedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('needs') ? safeFind({ collection: 'needs', depth: 0, where: { and: [{ publicVisible: { equals: true } }, { status: { not_equals: 'cerrada' } }] }, limit: publicLimit, sort: ['-featured', '-updatedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('announcements') ? safeFind({ collection: 'announcements', depth: 0, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('distributions') ? safeFind({ collection: 'distributions', depth: 1, where: { publicVisible: { equals: true } }, limit: publicLimit, sort: ['-date', '-createdAt'] }) : Promise.resolve([]),
+      wants('evidences') ? safeFind({ collection: 'distribution-evidence', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-publishedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('activities') ? safeFind({ collection: 'volunteer-activities', depth: 0, where: { and: [{ status: { equals: 'abierta' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['date', '-createdAt'] }) : Promise.resolve([]),
+      wants('communityNotices') ? safeFind({ collection: 'community-notices', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }, { category: { not_equals: 'mascota-perdida' } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('services') ? safeFind({ collection: 'services', depth: 0, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-publishedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('bulletins') ? safeFind({ collection: 'bulletins', depth: 0, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }) : Promise.resolve([]),
       safeFindGlobal(),
     ])
 
-    const resourceDocs = featuredFirst(resourceDocsRaw)
-    const aidIntakeDocs = featuredFirst(aidIntakeDocsRaw)
-    const needDocs = featuredFirst(needDocsRaw)
-    const announcementDocs = featuredFirst(announcementDocsRaw)
-    const noticeDocs = featuredFirst(noticeDocsRaw)
-    const serviceDocs = featuredFirst(serviceDocsRaw)
-    const bulletinDocs = featuredFirst(bulletinDocsRaw)
+    // El orden destacado ya lo resuelve PostgreSQL mediante `sort`; volver a
+    // ordenar aquí duplicaba trabajo y podía alterar el orden secundario.
+    const resourceDocs = resourceDocsRaw as PayloadLike[]
+    const aidIntakeDocs = aidIntakeDocsRaw as PayloadLike[]
+    const needDocs = needDocsRaw as PayloadLike[]
+    const announcementDocs = announcementDocsRaw as PayloadLike[]
+    const noticeDocs = noticeDocsRaw as PayloadLike[]
+    const serviceDocs = serviceDocsRaw as PayloadLike[]
+    const bulletinDocs = bulletinDocsRaw as PayloadLike[]
     const evidenceByDistribution = new Map<string, PayloadLike[]>()
     for (const evidence of evidenceDocs) {
       const distributionId = relationId(evidence.distribution)
@@ -200,19 +214,19 @@ export async function getOverview(): Promise<PublicOverview> {
           return (currentId && currentId === text(other.id)) || (currentTitle && currentTitle === text(other.title))
         }) === index
       })
-      return { id: distributionId, resource: text(distribution.resourceName, 'Ayuda'), quantity: `${distribution.quantity || 0} ${text(distribution.unit, 'unidades')}`, destination: text(distribution.destination, 'Destino general'), organization: text(distribution.organization, 'Equipo de distribución'), status: statusLabel(distribution.status), date: dateLabel(distribution.date, 'Por confirmar'), evidence: evidenceItems.map((item) => { const evidence = item as PayloadLike; return { id: text(evidence.id, crypto.randomUUID()), image: mediaUrl(evidence.image), title: text(evidence.title, 'Evidencia de la salida'), description: text(evidence.description, 'Registro visual de la preparación o entrega.') } }) }
+      return { id: distributionId, resource: text(distribution.resourceName, 'Ayuda'), quantity: `${distribution.quantity || 0} ${text(distribution.unit, 'unidades')}`, destination: text(distribution.destination, 'Destino general'), organization: text(distribution.organization, 'Equipo de distribución'), status: statusLabel(distribution.status), date: dateLabel(distribution.date, 'Por confirmar'), evidence: evidenceItems.map((item) => { const evidence = item as PayloadLike; return { id: text(evidence.id, crypto.randomUUID()), image: mediaUrl(evidence.image || evidence.publicImagePath), title: text(evidence.title, 'Evidencia de la salida'), description: text(evidence.description, 'Registro visual de la preparación o entrega.') } }) }
     })
     const separateEvidences = evidenceDocs.map((evidence) => {
       const relation = evidence.distribution && typeof evidence.distribution === 'object' ? evidence.distribution as PayloadLike : {}
       const distributionId = relationId(evidence.distribution)
-      return { id: text(evidence.id, crypto.randomUUID()), image: mediaUrl(evidence.image), title: text(evidence.title, 'Evidencia de la operación'), description: text(evidence.description, 'Registro visual de la operación.'), source: distributionId ? `${text(relation.resourceName, 'Ayuda')} · ${text(relation.destination, 'Distribución')}` : text(evidence.otherReference, 'Registro operativo general'), distributionId }
+      return { id: text(evidence.id, crypto.randomUUID()), image: mediaUrl(evidence.image || evidence.publicImagePath), title: text(evidence.title, 'Evidencia de la operación'), description: text(evidence.description, 'Registro visual de la operación.'), source: distributionId ? `${text(relation.resourceName, 'Ayuda')} · ${text(relation.destination, 'Distribución')}` : text(evidence.otherReference, 'Registro operativo general'), distributionId }
     })
     const legacyEvidences = mappedDistributions.flatMap((distribution) => distribution.evidence.map((evidence) => ({ ...evidence, source: `${distribution.resource} · ${distribution.destination}`, distributionId: distribution.id })))
     const evidences = [...separateEvidences, ...legacyEvidences].filter((evidence, index, items) => items.findIndex((other) => `${other.distributionId}:${other.title}` === `${evidence.distributionId}:${evidence.title}`) === index)
 
     return {
       center: {
-        name: text(settingsData.centerName, emptyOverview.center.name), address: text(settingsData.address, emptyOverview.center.address), hours: text(settingsData.hours, emptyOverview.center.hours), status: text(settingsData.centerStatus, emptyOverview.center.status), lastUpdate: dateTimeLabel(settingsData.lastOperationalUpdate, emptyOverview.center.lastUpdate), contact: text(settingsData.contactChannel, emptyOverview.center.contact),
+        name: text(settingsData.centerName, emptyOverview.center.name), address: text(settingsData.address, emptyOverview.center.address), hours: text(settingsData.hours, emptyOverview.center.hours), status: text(settingsData.centerStatus, emptyOverview.center.status), lastUpdate: dateTimeLabel(settingsData.lastOperationalUpdate, emptyOverview.center.lastUpdate), contact: text(settingsData.phone, emptyOverview.center.contact),
       },
       resources: resourceDocs.map((resource) => ({ id: text(resource.id, crypto.randomUUID()), name: text(resource.name, 'Recurso sin nombre'), category: categoryLabel(resource.category), quantity: Number(resource.quantity || 0), unit: text(resource.unit, 'unidades'), status: text(resource.status, 'disponible'), detail: text(resource.notes, 'Existencia registrada por el equipo de inventario.'), featured: resource.featured === true })),
       aidIntakes: aidIntakeDocs.map((intake) => ({ id: text(intake.id, crypto.randomUUID()), resource: text(intake.resourceName, 'Ayuda recibida'), category: categoryLabel(intake.category), quantity: `${intake.quantity || 0} ${text(intake.unit, 'unidades')}`, sourceType: intakeSourceLabel(intake.sourceType), sourceReference: text(intake.sourceReference, 'Origen registrado por el equipo'), status: intakeStatusLabel(intake.status), receivedAt: dateTimeLabel(intake.receivedAt, 'Recibida recientemente'), publicVisible: intake.publicVisible !== false, notes: text(intake.notes, 'Ayuda registrada por el equipo de inventario.'), featured: intake.featured === true })),
@@ -221,7 +235,7 @@ export async function getOverview(): Promise<PublicOverview> {
       distributions: mappedDistributions,
       evidences,
       activities: activityDocs.map((activity) => ({ id: text(activity.id, crypto.randomUUID()), title: text(activity.title, 'Actividad del centro'), date: dateLabel(activity.date, 'Próximo'), time: `${text(activity.startTime, 'Hora por confirmar')} — ${text(activity.endTime, 'hora de cierre')}`, location: text(activity.location, 'Centro de acopio'), spots: `${Math.max(0, Number(activity.capacity || 0) - Number(activity.registered || 0))} cupos` })),
-      communityNotices: noticeDocs.map((notice) => ({ id: text(notice.id, crypto.randomUUID()), category: noticeCategoryLabel(notice.category), title: text(notice.title, 'Comunicado comunitario'), body: text(notice.body, 'Información compartida por la comunidad.'), image: mediaUrl(notice.image), location: text(notice.location, 'Zona general'), time: dateTimeLabel(notice.publishedAt, 'Publicado recientemente'), contact: text(notice.contact, 'Equipo de comunicaciones'), featured: notice.featured === true })),
+      communityNotices: noticeDocs.map((notice) => ({ id: text(notice.id, crypto.randomUUID()), category: noticeCategoryLabel(notice.category), title: text(notice.title, 'Comunicado comunitario'), body: text(notice.body, 'Información compartida por la comunidad.'), image: mediaUrl(notice.image || notice.publicImagePath), location: text(notice.location, 'Zona general'), time: dateTimeLabel(notice.publishedAt, 'Publicado recientemente'), contact: text(notice.contact, 'Equipo de comunicaciones'), featured: notice.featured === true })),
       services: serviceDocs.map((service) => ({ id: text(service.id, crypto.randomUUID()), type: text(service.type, 'gratuito'), typeLabel: serviceTypeLabel(service.type), category: text(service.category, 'General'), title: text(service.title, 'Servicio comunitario'), description: text(service.description, 'Información del servicio disponible.'), provider: text(service.provider, 'Comunidad'), location: text(service.location, 'Zona general'), price: text(service.price, 'Consultar'), featured: service.featured === true })),
       bulletins: bulletinDocs.map((bulletin) => ({ id: text(bulletin.id, crypto.randomUUID()), category: text(bulletin.category, 'Actualización'), title: text(bulletin.title, 'Boletín del centro'), summary: text(bulletin.summary, 'Actualización de la operación comunitaria.'), body: text(bulletin.body, 'Consulta los avances del centro de acopio.'), date: dateLabel(bulletin.publishedAt, 'Por confirmar'), author: text(bulletin.author, 'Equipo del centro'), featured: bulletin.featured === true })),
       metrics: { received: metricLabel(receivedTotal), available: metricLabel(availableTotal), distributed: metricLabel(distributedTotal), volunteers: metricLabel(activityDocs.length) },

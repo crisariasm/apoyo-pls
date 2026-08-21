@@ -3,11 +3,13 @@ import { PageIntro } from '../../components/page-intro'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
 import { getOverview } from '../../../lib/public-api'
+import { pageMetadata } from '../../../lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
+export const metadata = pageMetadata('Boletín', 'Consulta avances, registros y aprendizajes del centro de acopio.', '/boletin')
 
 export default async function BulletinPage() {
-  const data = await getOverview()
+  const data = await getOverview({ sections: ['bulletins'] })
   const bulletins = data.bulletins
 
   return (

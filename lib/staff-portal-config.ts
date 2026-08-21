@@ -1,7 +1,8 @@
 export const portalRoleValues = [
   'que-tenemos',
   'que-necesitamos',
-  'anuncios-boletin',
+  'anuncios',
+  'boletin',
   'servicios',
   'inventario',
   'distribucion',
@@ -58,7 +59,8 @@ export const portalModuleSlugs = [
 export const portalRoleLabels: Record<PortalRole, string> = {
   'que-tenemos': 'Rol que tenemos',
   'que-necesitamos': 'Rol que necesitamos',
-  'anuncios-boletin': 'Rol de anuncios del centro y boletín informativo',
+  anuncios: 'Rol de anuncios del centro',
+  boletin: 'Rol de boletín informativo',
   servicios: 'Rol de servicios',
   inventario: 'Rol de inventario',
   distribucion: 'Rol de distribución',
@@ -142,7 +144,7 @@ export const portalModules: PortalModule[] = [
     label: 'Anuncios del centro',
     description: 'Publica cambios para el centro de acopio de horario, necesidades, rutas e información oficial.',
     collection: 'announcements',
-    roles: ['anuncios-boletin'],
+    roles: ['anuncios'],
     titleField: 'title',
     summaryFields: ['type', 'status', 'publishedAt'],
     fields: [
@@ -171,7 +173,7 @@ export const portalModules: PortalModule[] = [
     label: 'Boletín informativo',
     description: 'Redacta avances, registros y aprendizajes de la operación.',
     collection: 'bulletins',
-    roles: ['anuncios-boletin'],
+    roles: ['boletin'],
     titleField: 'title',
     summaryFields: ['category', 'status', 'publishedAt'],
     fields: [
@@ -271,7 +273,7 @@ export const portalModules: PortalModule[] = [
     label: 'Evidencias',
     description: 'Registra imágenes y descripciones de las salidas, sin datos sensibles.',
     collection: 'distribution-evidence',
-    roles: ['que-tenemos', 'que-necesitamos', 'anuncios-boletin', 'servicios', 'inventario', 'distribucion', 'comunicados', 'administracion'],
+    roles: ['que-tenemos', 'que-necesitamos', 'anuncios', 'boletin', 'servicios', 'inventario', 'distribucion', 'comunicados', 'administracion'],
     titleField: 'title',
     summaryFields: ['sourceType', 'distribution', 'status', 'publishedAt'],
     canCreate: true,
@@ -314,6 +316,7 @@ export const portalModules: PortalModule[] = [
         { label: 'Vivienda', value: 'vivienda' },
         { label: 'Otro', value: 'otro' },
       ] },
+      { name: 'image', label: 'Imagen', type: 'upload', required: true, description: 'Imagen del comunicado. No incluyas rostros de menores, documentos ni ubicaciones sensibles.' },
       { name: 'location', label: 'Zona general', type: 'text', required: true },
       { name: 'contact', label: 'Canal o responsable', type: 'text', required: true },
       { name: 'status', label: 'Estado', type: 'select', required: true, options: [
@@ -331,9 +334,9 @@ export const portalModules: PortalModule[] = [
     label: 'Solicitudes',
     description: 'Consulta las solicitudes recibidas desde la página y revisa su estado de atención.',
     collection: 'support-requests',
-    roles: ['que-tenemos', 'que-necesitamos', 'anuncios-boletin', 'servicios', 'inventario', 'distribucion', 'comunicados', 'administracion'],
+    roles: ['que-tenemos', 'que-necesitamos', 'anuncios', 'boletin', 'servicios', 'inventario', 'distribucion', 'comunicados', 'administracion'],
     titleField: 'requestType',
-    summaryFields: ['category', 'zone', 'status', 'contactName'],
+    summaryFields: ['category', 'zone', 'status', 'contactName', 'phone'],
     canCreate: false,
     canDelete: true,
     fields: [

@@ -3,11 +3,13 @@ import { PageIntro } from '../../components/page-intro'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
 import { getOverview } from '../../../lib/public-api'
+import { pageMetadata } from '../../../lib/site-metadata'
 
 export const dynamic = 'force-dynamic'
+export const metadata = pageMetadata('Comunicados comunitarios', 'Encuentra avisos útiles de la comunidad sobre animales, vivienda, objetos e información general.', '/comunicados')
 
 export default async function CommunityNoticesPage() {
-  const data = await getOverview()
+  const data = await getOverview({ sections: ['communityNotices'] })
   const notices = data.communityNotices
 
   return (

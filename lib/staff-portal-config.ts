@@ -232,7 +232,7 @@ export const portalModules: PortalModule[] = [
     fields: [
       { name: 'name', label: 'Recurso', type: 'text', required: true },
       { name: 'category', label: 'Categoría', type: 'select', required: true, options: resourceCategories.map((category) => ({ ...category })) },
-      { name: 'quantity', label: 'Cantidad aproximada', type: 'number', required: true, min: 1 },
+      { name: 'quantity', label: 'Cantidad aproximada', type: 'number', required: true, min: 0 },
       { name: 'unit', label: 'Presentación / medida', type: 'text', required: true, placeholder: 'Ej.: cajas, kits, litros o unidades', description: 'Indica qué representa la cantidad disponible.' },
       { name: 'status', label: 'Estado', type: 'select', required: true, options: [
         { label: 'Disponible', value: 'disponible' },

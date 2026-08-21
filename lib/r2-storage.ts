@@ -110,7 +110,11 @@ export function createR2Key(filename: string) {
     .map((segment) => segment.replace(/[^a-zA-Z0-9._-]/g, '-'))
     .filter((segment) => segment && segment !== '.' && segment !== '..')
     .join('/') || 'media'
-  const safeFilename = filename.trim().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'archivo'
+  const safeFilename = filename
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/\.{2,}/g, '.')
+    .replace(/^[.-]+|[.-]+$/g, '') || 'archivo'
   return `${prefix}/${randomUUID()}-${safeFilename}`
 }
 

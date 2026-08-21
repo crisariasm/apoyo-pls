@@ -33,6 +33,7 @@ La interfaz pública y el portal operativo están separados. El panel original d
 - [Seeder de demostración](#seeder-de-demostración)
 - [UUID y migraciones](#uuid-y-migraciones)
 - [Seguridad y privacidad](#seguridad-y-privacidad)
+- [Pruebas automatizadas](#pruebas-automatizadas)
 - [Comandos de desarrollo](#comandos-de-desarrollo)
 - [Producción](#producción)
 - [Solución de problemas](#solución-de-problemas)
@@ -78,6 +79,10 @@ La aplicación está construida con:
 | `lib/image-processing.ts` | Rotación, redimensión y conversión de imágenes a WebP |
 | `lib/r2-storage.ts` | Firmado de operaciones GET, PUT y DELETE contra R2 |
 | `scripts/seed-with-migrations.ts` | Migraciones, UUID v4 únicos por ejecución y carga idempotente de datos y usuarios de prueba |
+| `tests/*.test.ts` | Pruebas unitarias, seguridad y contratos de colecciones |
+| `tests/integration` | Integración real entre Payload y PostgreSQL |
+| `tests/e2e` | Recorridos HTTP sobre una compilación real de Next.js |
+| `.github/workflows/tests.yml` | CI reproducible con pnpm y PostgreSQL 16 |
 | `payload.config.ts` | Configuración de Payload, PostgreSQL, UUID y colecciones |
 
 ## Puesta en marcha
@@ -1045,6 +1050,78 @@ No se deben registrar públicamente:
 
 Las distribuciones utilizan destinos generales, barrios, zonas, albergues u organizaciones.
 
+## Pruebas automatizadas
+
+El proyecto usa el ejecutor nativo de pruebas de Node.js. No depende de npm ni
+de servicios externos durante CI. La estrategia se divide en tres capas:
+
+| Capa | Comando | Cobertura principal |
+|---|---|---|
+| Unitarias y contratos | `pnpm test` o `pnpm test:unit` | Saneamiento, límites de body, origen/CSRF, rate limiting, teléfono, cantidades, UUID, roles, campos obligatorios, hooks de colecciones, auditoría, WebP y ciclo simulado de R2 |
+| Integración | `pnpm test:integration` | Payload con PostgreSQL real, UUID persistidos, acceso directo por rol, autoría, visibilidad pública, CRUD, auditoría inmutable y estados de solicitudes |
+| Aplicación completa | `pnpm test:e2e` | Páginas, cabeceras de seguridad, endpoints públicos, formularios, login/refresh/logout, permisos de todos los roles, CRUD operativo, Payload y navegación de monitoreo |
+
+### Pruebas rápidas
+
+No requieren servidor ni base de datos:
+
+```bash
+pnpm test
+pnpm test:coverage
+```
+
+La prueba de R2 intercepta las llamadas de red, comprueba la conversión a WebP,
+la firma de la carga y la eliminación del objeto. Nunca escribe en el bucket
+real ni necesita secretos. `test:coverage` falla si baja de 90% de líneas, 78%
+de ramas o 80% de funciones dentro de los módulos cubiertos por esta capa.
+
+### Pruebas con PostgreSQL
+
+Levanta PostgreSQL y prepara la base de desarrollo o una base exclusiva para
+pruebas:
+
+```bash
+docker compose up -d
+pnpm payload:seed
+pnpm test:integration
+```
+
+Los registros creados por la integración usan nombres y correos únicos y se
+eliminan al terminar. En CI siempre se usa una base efímera independiente.
+
+### Pruebas HTTP de extremo a extremo
+
+Estas pruebas esperan una base poblada y la aplicación ya iniciada:
+
+```bash
+pnpm build
+pnpm start
+```
+
+En otra terminal:
+
+```bash
+TEST_BASE_URL=http://127.0.0.1:3000 pnpm test:e2e
+```
+
+No apuntes `TEST_BASE_URL` a producción: la suite crea, edita y elimina
+registros de comprobación y utiliza las cuentas locales del seeder.
+
+### GitHub Actions
+
+El workflow [tests.yml](./.github/workflows/tests.yml) se ejecuta en cada
+`push`, `pull_request` y manualmente. Tiene dos trabajos:
+
+1. Instala con `pnpm install --frozen-lockfile`, ejecuta pruebas unitarias,
+   TypeScript, ESLint y comprueba que `payload-types.ts` esté actualizado.
+2. Levanta PostgreSQL 16, prepara el esquema y el seeder, ejecuta integración,
+   compila en modo producción, inicia Next.js, espera `/api/health` y recorre la
+   aplicación completa por HTTP.
+
+Si falla el segundo trabajo, conserva el log de Next.js como artefacto durante
+siete días. La concurrencia cancela ejecuciones antiguas de la misma rama para
+no gastar minutos ni reportar resultados obsoletos.
+
 ## Comandos de desarrollo
 
 Todos los comandos de proyecto se ejecutan con pnpm:
@@ -1056,6 +1133,10 @@ pnpm build                    # Compilación de producción
 pnpm start                    # Sirve la compilación
 pnpm lint                     # Ejecuta ESLint
 pnpm typecheck                # Comprueba TypeScript
+pnpm test                     # Pruebas unitarias y contratos
+pnpm test:integration         # Payload + PostgreSQL real
+pnpm test:e2e                 # Aplicación iniciada + recorridos HTTP
+pnpm test:coverage            # Cobertura de pruebas rápidas
 pnpm payload:generate         # Genera payload-types.ts
 pnpm payload:migrate:create   # Crea una migración
 pnpm payload:migrate          # Ejecuta migraciones
@@ -1179,11 +1260,15 @@ La validación estándar es:
 ```bash
 pnpm lint
 pnpm typecheck
-pnpm test
+pnpm test:unit
+pnpm test:integration
 pnpm build
+# Con la aplicación iniciada:
+pnpm test:e2e
 ```
 
-`pnpm test` usa el ejecutor de pruebas de Node, sin dependencias adicionales, y cubre el saneo del historial, la validación de la pregunta, la lectura de la respuesta del webhook, la URL del webhook, el límite de peticiones y el análisis del Markdown del asistente.
+La misma secuencia se ejecuta automáticamente en GitHub Actions contra una
+instancia limpia de PostgreSQL.
 
 Para compilar mientras el servidor de desarrollo está levantado, usa otro directorio de salida y evita pisar su `.next`:
 

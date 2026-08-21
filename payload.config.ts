@@ -52,6 +52,9 @@ export default buildConfig({
     user: Users.slug,
     importMap: { importMapFile: './app/(payload)/admin/importMap.ts' },
     components: {
+      graphics: {
+        Logo: './components/payload/AdminLogo#AdminLogo',
+      },
       beforeNavLinks: ['./components/payload/MonitoringNavLink#MonitoringNavLink'],
       views: {
         monitoring: {

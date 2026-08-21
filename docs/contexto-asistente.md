@@ -180,9 +180,11 @@ Todos los módulos (salvo Solicitudes) comparten la misma pantalla, dividida en 
 - Pide confirmación: «¿Quieres eliminar este registro?».
 - Al confirmar muestra **«Registro eliminado correctamente.»** y ajusta la página si esta queda vacía.
 
-**Imágenes** (solo en Evidencias)
+**Imágenes** (en Evidencias y en Comunicados)
 - Botón **Seleccionar imagen**. Formatos PNG, JPG o WebP, máximo 10 MB.
 - Con la imagen cargada se ve la vista previa y el botón **Eliminar imagen**.
+
+**En pantallas pequeñas** el formulario de creación viene plegado: se abre con el botón **Crear «nombre del módulo»** y se cierra con **Ocultar formulario**.
 
 **Campos comunes en casi todos los módulos**
 - **Visible públicamente**: casilla que decide si el registro aparece en la página pública. Viene marcada por defecto.
@@ -335,6 +337,7 @@ El formulario cambia solo: al elegir «Otro registro operativo» desaparece el s
 | Título | Texto | Sí |
 | Descripción | Texto largo | Sí |
 | Categoría | Mascota encontrada · Apoyo comunitario · Objeto perdido · Información comunitaria · Vivienda · Otro | Sí |
+| Imagen | Archivo PNG, JPG o WebP, máx. 10 MB | Sí |
 | Zona general | Texto | Sí |
 | Canal o responsable | Texto | Sí |
 | Estado | Borrador · Publicado · Archivado | Sí |
@@ -349,7 +352,7 @@ La pantalla tiene dos columnas:
 - **Solicitudes por revisar**: las que están en *Pendiente*, con su contador.
 - **Registros guardados**: las ya gestionadas, con el número de solicitudes gestionadas.
 
-Al abrir una solicitud se ve el detalle completo: tipo de solicitud, tipo de ayuda (necesitar u ofrecer), categoría, zona o barrio, cantidad aproximada, nombre y canal de contacto, aceptación de privacidad, fecha de recepción, quién la registró, última actualización y el detalle escrito por la persona.
+Al abrir una solicitud se ve el detalle completo: tipo de solicitud, tipo de ayuda (necesitar u ofrecer), categoría, zona o barrio, cantidad aproximada con su unidad, nombre de contacto, **teléfono**, aceptación de privacidad, fecha en que se reportó, quién la registró, última actualización y el detalle escrito por la persona.
 
 En la ventana se puede:
 - Cambiar el **Estado de atención**: Pendiente · En revisión · Asignada · Atendida · Cerrada. Al abrir una pendiente, el estado se propone automáticamente como *En revisión*.
@@ -407,15 +410,17 @@ Las páginas públicas se refrescan solas cada pocos segundos, así que muestran
 
 ### 8.1 Formulario «Quiero ayudar» (`/ayudar`)
 
-Campos: **Tipo de ayuda** (Ofrecer recursos · Ofrecer transporte · Ofrecer tiempo o conocimientos), **Nombre de contacto**, **Qué puedes aportar**, **Zona donde puedes ayudar**, **Cantidad aproximada** (opcional), **Detalle**, **Canal de contacto** y la aceptación de privacidad. Botón **Enviar oferta**. Al enviarse aparece «Gracias por ayudar» y la oferta llega a la bandeja de **Solicitudes** del portal.
+Campos: **Tipo de ayuda** (Ofrecer recursos · Ofrecer transporte · Ofrecer tiempo o conocimientos), **Nombre de contacto**, **Teléfono**, **Qué puedes aportar**, **Zona donde puedes ayudar**, **Cantidad aproximada** y **Unidad de la cantidad** (opcionales, pero si va una va la otra), **Detalle** y la aceptación de privacidad. Botón **Enviar oferta**. Al enviarse aparece «Gracias por ayudar» y la oferta llega a la bandeja de **Solicitudes** del portal.
 
 ### 8.2 Formulario «Solicitar apoyo» (`/solicitar-apoyo`)
 
-Campos: **Tipo de solicitud** (Solicitar recursos · Solicitar transporte), **Nombre de contacto**, **Categoría**, **Zona o barrio**, **Cantidad aproximada** (opcional), **Detalle**, **Canal de contacto** y la aceptación del aviso de privacidad. Botón **Enviar solicitud**. Advertencia visible: se trabaja por zona y necesidad general, sin nombres de menores ni datos sensibles.
+Campos: **Tipo de solicitud** (Solicitar recursos · Solicitar transporte), **Nombre de contacto**, **Teléfono**, **Categoría**, **Zona o barrio**, **Cantidad aproximada** y **Unidad de la cantidad** (opcionales, pero si va una va la otra), **Detalle** y la aceptación del aviso de privacidad. Botón **Enviar solicitud**. Advertencia visible: se trabaja por zona y necesidad general, sin nombres de menores ni datos sensibles.
+
+La **cantidad es un número entero** y la unidad se elige de una lista: Unidades · Cajas · Kits · Paquetes · Bultos · Pares · Pacas · Canecas · Litros · Turnos · Horas · Recorridos. El **teléfono es obligatorio** en los tres formularios públicos y sirve para coordinar la ayuda: no se publica.
 
 ### 8.3 Botón «Ofrecer esta ayuda» (`/necesidades`)
 
-Abre una ventana con el nombre de la necesidad, y pide **nombre de contacto**, **cantidad** que se puede aportar y la aceptación de privacidad. Se envía como una oferta y también llega a **Solicitudes**.
+Abre una ventana con el nombre de la necesidad, y pide **nombre**, **teléfono**, **cantidad** que se puede aportar y un **mensaje** opcional, más la aceptación de privacidad. Se envía como una oferta y también llega a **Solicitudes**.
 
 ---
 
@@ -513,7 +518,7 @@ La clasificación se refleja en dos datos: la **Categoría** (a qué grupo perte
 6. Deja el **Estado** en *Publicado* con su **Fecha de publicación** y pulsa **Crear registro**.
 
 ### 9.13 ¿Cómo se registra un voluntario?
-1. La persona entra a `/ayudar` y envía el formulario eligiendo **Ofrecer tiempo o conocimientos**, con su nombre, zona, detalle y canal de contacto.
+1. La persona entra a `/ayudar` y envía el formulario eligiendo **Ofrecer tiempo o conocimientos**, con su nombre, teléfono, zona y detalle.
 2. La oferta llega a **Solicitudes** en el portal, en la columna «Solicitudes por revisar».
 3. El equipo la abre, cambia el **Estado de atención** a *En revisión* y luego a *Asignada* cuando la conecta con una jornada o tarea.
 4. Se deja constancia en **Notas internas** y se guarda.
@@ -521,7 +526,7 @@ La clasificación se refleja en dos datos: la **Categoría** (a qué grupo perte
 6. Las jornadas y sus cupos los administra el equipo de coordinación en las actividades de voluntariado.
 
 ### 9.14 ¿Cómo se solicita apoyo?
-1. La persona u organización entra a `/solicitar-apoyo` y envía el formulario indicando si necesita recursos o transporte, la categoría, la zona o barrio, la cantidad aproximada, el detalle y su canal de contacto.
+1. La persona u organización entra a `/solicitar-apoyo` y envía el formulario indicando si necesita recursos o transporte, la categoría, la zona o barrio, la cantidad aproximada con su unidad, el detalle, su nombre y su teléfono.
 2. La solicitud llega a **Solicitudes** como *Pendiente*.
 3. El equipo la abre, la pasa a *En revisión* y registra en **Notas internas** lo que se va gestionando.
 4. Si la solicitud implica conseguir algo que no hay, se registra además como **necesidad** en el módulo **Qué necesitamos** (paso 9.6).
@@ -545,7 +550,7 @@ Edita el registro y desmarca **Visible públicamente**, o cambia su **Estado** a
 - El centro trabaja por **zonas, barrios, albergues y organizaciones**, nunca con direcciones exactas de personas.
 - No se registran nombres de menores, documentos de identidad ni datos sensibles.
 - Las imágenes no deben mostrar rostros de menores, documentos ni ubicaciones sensibles.
-- Los datos de contacto de las solicitudes son de uso interno del equipo: sirven para responder, no para publicarse.
+- El teléfono y los datos de contacto de las solicitudes son de uso interno del equipo: sirven para coordinar la ayuda, **no se publican**, y el asistente nunca los repite en una respuesta.
 - Las **Notas internas** de una solicitud nunca se muestran en la página pública.
 - La plataforma no tiene módulo de personas desaparecidas.
 

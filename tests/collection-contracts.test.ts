@@ -124,6 +124,12 @@ test('las solicitudes conservan el origen del botón Lo tengo', () => {
   assert.deepEqual(source?.options?.map((option) => option.value), ['public-form', 'need-offer'])
 })
 
+test('las actividades permiten marcar una actividad como destacada', () => {
+  const featured = namedFields(VolunteerActivities.fields).get('featured') as { defaultValue?: boolean; index?: boolean } | undefined
+  assert.equal(featured?.defaultValue, false)
+  assert.equal(featured?.index, true)
+})
+
 test('la auditoría automática limita texto y conserva creador/editor', () => {
   const audited = withAuditFields(Resources)
   const fields = namedFields(audited.fields)

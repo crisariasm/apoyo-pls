@@ -17,7 +17,7 @@
     "test:coverage": "node --import tsx/esm --experimental-test-coverage --test --test-coverage-lines=90 --test-coverage-branches=78 --test-coverage-functions=80 tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "payload": "payload",
-    "payload:generate": "payload generate:types",
+    "payload:generate": "payload generate:types && node scripts/ensure-final-newline.mjs payload-types.ts",
     "payload:migrate": "payload migrate",
     "payload:migrate:create": "payload migrate:create",
     "payload:seed": "node --env-file=.env --import tsx/esm scripts/seed-with-migrations.ts"

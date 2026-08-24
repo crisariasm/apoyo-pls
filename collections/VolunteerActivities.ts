@@ -6,7 +6,7 @@ export const VolunteerActivities: CollectionConfig = {
   slug: 'volunteer-activities',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'date', 'location', 'status', 'capacity'],
+    defaultColumns: ['title', 'date', 'location', 'status', 'featured', 'capacity'],
     group: 'Equipo',
   },
   access: {
@@ -38,6 +38,7 @@ export const VolunteerActivities: CollectionConfig = {
         { label: 'Finalizada', value: 'finalizada' },
       ],
     },
+    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, index: true, admin: { description: 'Lo fija como una de las próximas actividades prioritarias.' } },
     { name: 'publicVisible', type: 'checkbox', label: 'Visible públicamente', defaultValue: true, index: true },
     { name: 'lead', type: 'text', label: 'Persona responsable' },
   ],

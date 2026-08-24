@@ -19,6 +19,7 @@ const navSymbols: Record<string, string> = {
   servicios: '◇',
   inventario: '▦',
   distribucion: '⇄',
+  actividades: '◷',
   evidencias: '◫',
   comunicados: '◉',
   administracion: '⚙',

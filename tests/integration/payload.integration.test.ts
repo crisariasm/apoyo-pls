@@ -10,6 +10,7 @@ loadTestEnv()
 
 type StoredDoc = { collection: string; id: string }
 type TestUser = Record<string, unknown> & { id: string; email: string; name: string; role: string }
+type PostgreSQLPool = { end?: () => Promise<void> }
 
 let payload: Payload
 let admin: TestUser
@@ -57,8 +58,14 @@ before(async () => {
 
 after(async () => {
   if (!payload) return
-  await removeCreatedDocs()
-  await payload.destroy()
+  // Payload destruye su estado, pero el adaptador de PostgreSQL conserva el pool abierto.
+  const pool = (payload.db as unknown as { pool?: PostgreSQLPool }).pool
+  try {
+    await removeCreatedDocs()
+  } finally {
+    await payload.destroy()
+    await pool?.end?.()
+  }
 })
 
 test('Payload y PostgreSQL aplican CRUD, roles, autoría, visibilidad y auditoría', async (t) => {

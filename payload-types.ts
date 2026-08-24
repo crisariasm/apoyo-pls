@@ -605,6 +605,10 @@ export interface VolunteerActivity {
   capacity: number;
   registered?: number | null;
   status: 'abierta' | 'llena' | 'finalizada';
+  /**
+   * Lo fija como una de las próximas actividades prioritarias.
+   */
+  featured?: boolean | null;
   publicVisible?: boolean | null;
   lead?: string | null;
   /**
@@ -1076,6 +1080,7 @@ export interface VolunteerActivitiesSelect<T extends boolean = true> {
   capacity?: T;
   registered?: T;
   status?: T;
+  featured?: T;
   publicVisible?: T;
   lead?: T;
   registeredBy?: T;

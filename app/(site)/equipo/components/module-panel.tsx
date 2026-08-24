@@ -21,6 +21,7 @@ function emptyForm(module: PortalModule) {
     servicios: { type: 'gratuito', status: 'publicado', publishedAt: today },
     inventario: { status: 'disponible' },
     distribucion: { status: 'pendiente', date: today },
+    actividades: { registered: 0, status: 'abierta', date: today },
     comunicados: { category: 'informacion-comunitaria', status: 'publicado', publishedAt: today },
     evidencias: { sourceType: 'distribucion', status: 'publicado', publishedAt: today },
     administracion: { status: 'pendiente' },

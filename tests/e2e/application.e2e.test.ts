@@ -189,10 +189,18 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
       const login = await loginTeam(`${role}@plsalllamado.local`, teamPassword, `172.23.${index + 1}.1`)
       assert.equal(login.response.status, 200, role)
       assert.equal(login.body.user && (login.body.user as JsonRecord).role, role)
-      for (const module of [ownModule, 'evidencias', 'administracion']) {
+      for (const module of [ownModule, 'actividades', 'evidencias', 'administracion']) {
         const response = await request(`/api/equipo/${module}?page=1&limit=8`, { headers: sameOriginHeaders({ cookie: login.cookie }) })
         assert.equal(response.status, 200, `${role} -> ${module}`)
       }
+      const dashboardResponse = await request('/equipo', { headers: sameOriginHeaders({ cookie: login.cookie }) })
+      assert.equal(dashboardResponse.status, 200, `${role} -> dashboard`)
+      assert.match(await dashboardResponse.text(), /Actividades/)
+      const activitiesPageResponse = await request('/equipo/actividades', { headers: sameOriginHeaders({ cookie: login.cookie }) })
+      assert.equal(activitiesPageResponse.status, 200, `${role} -> formulario de actividades`)
+      const activitiesPage = await activitiesPageResponse.text()
+      assert.match(activitiesPage, /Crear actividades/i)
+      assert.match(activitiesPage, /Personas inscritas/i)
       const foreignModule = ownModule === 'inventario' ? 'boletin' : 'inventario'
       const forbidden = await request(`/api/equipo/${foreignModule}`, { headers: { cookie: login.cookie } })
       assert.equal(forbidden.status, 403, `${role} no debe ver ${foreignModule}`)
@@ -207,6 +215,7 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
     { role: 'servicios', module: 'servicios', data: { title: 'Servicio de prueba', description: 'Descripción de prueba.', type: 'gratuito', category: 'Transporte', provider: 'Comunidad', location: 'Pereira', status: 'borrador', publicVisible: false }, patch: { location: 'Dosquebradas' } },
     { role: 'inventario', module: 'inventario', data: { name: 'Inventario de prueba', category: 'agua', quantity: 0, unit: 'cajas', status: 'agotado', publicVisible: false }, patch: { quantity: 1, status: 'limitado' } },
     { role: 'distribucion', module: 'distribucion', data: { resourceName: 'Distribución de prueba', quantity: 2, unit: 'cajas', date: new Date().toISOString(), destination: 'Pereira', organization: 'Equipo de prueba', status: 'pendiente', publicVisible: false }, patch: { status: 'en-ruta' } },
+    { role: 'inventario', module: 'actividades', data: { title: 'Actividad de prueba', description: 'Jornada creada por la prueba E2E.', date: new Date().toISOString(), startTime: '08:00', endTime: '12:00', location: 'Centro de acopio', capacity: 6, registered: 0, status: 'abierta', featured: true, publicVisible: true }, patch: { registered: 1 } },
   ]
 
   await t.test('los módulos operativos completan crear, listar, editar y eliminar', async () => {
@@ -227,6 +236,18 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
       assertNoSensitiveFields(list, `/api/equipo/${scenario.module}`)
       assert.ok((list.docs as JsonRecord[]).some((doc) => String(doc.id) === id), `${scenario.module}: listar`)
 
+      if (scenario.module === 'actividades') {
+        const overviewResponse = await request('/api/public/overview')
+        assert.equal(overviewResponse.status, 200)
+        const overview = await json(overviewResponse)
+        const publicActivity = (overview.activities as JsonRecord[]).find((activity) => String(activity.id) === id)
+        assert.ok(publicActivity, 'actividades: aparecer en el resumen público')
+        assert.equal(publicActivity.featured, true, 'actividades: conservar destacado en el resumen público')
+        const helpPage = await request('/ayudar')
+        assert.equal(helpPage.status, 200)
+        assert.match(await helpPage.text(), /Actividad de prueba/)
+      }
+
       const updateResponse = await request(`/api/equipo/${scenario.module}`, {
         method: 'PATCH', headers: sameOriginHeaders({ cookie: login.cookie, 'content-type': 'application/json', 'x-forwarded-for': `172.26.${crudCases.indexOf(scenario) + 1}.1` }),
         body: JSON.stringify({ id, ...scenario.patch }),
@@ -238,6 +259,12 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
         method: 'DELETE', headers: sameOriginHeaders({ cookie: login.cookie, 'content-type': 'application/json', 'x-forwarded-for': `172.27.${crudCases.indexOf(scenario) + 1}.1` }), body: JSON.stringify({ id }),
       })
       assert.equal(deleteResponse.status, 200, `${scenario.module}: eliminar`)
+
+      if (scenario.module === 'actividades') {
+        const overviewResponse = await request('/api/public/overview')
+        const overview = await json(overviewResponse)
+        assert.equal((overview.activities as JsonRecord[]).some((activity) => String(activity.id) === id), false, 'actividades: desaparecer del resumen público al eliminar')
+      }
     }
   })
 

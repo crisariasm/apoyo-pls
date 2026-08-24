@@ -34,7 +34,7 @@ export type PortalModule = {
   slug: PortalModuleSlug
   label: string
   description: string
-  collection: 'aid-intakes' | 'needs' | 'announcements' | 'bulletins' | 'services' | 'resources' | 'distributions' | 'distribution-evidence' | 'community-notices' | 'support-requests'
+  collection: 'aid-intakes' | 'needs' | 'announcements' | 'bulletins' | 'services' | 'resources' | 'distributions' | 'distribution-evidence' | 'volunteer-activities' | 'community-notices' | 'support-requests'
   roles: PortalRole[]
   titleField: string
   summaryFields: string[]
@@ -51,6 +51,7 @@ export const portalModuleSlugs = [
   'servicios',
   'inventario',
   'distribucion',
+  'actividades',
   'evidencias',
   'comunicados',
   'administracion',
@@ -266,6 +267,33 @@ export const portalModules: PortalModule[] = [
       ] },
       visibilityField,
       { name: 'notes', label: 'Observaciones', type: 'textarea' },
+    ],
+  },
+  {
+    slug: 'actividades',
+    label: 'Actividades',
+    description: 'Organiza jornadas y espacios de voluntariado para que la comunidad sepa cómo participar.',
+    collection: 'volunteer-activities',
+    roles: ['que-tenemos', 'que-necesitamos', 'anuncios', 'boletin', 'servicios', 'inventario', 'distribucion', 'comunicados', 'administracion'],
+    titleField: 'title',
+    summaryFields: ['date', 'startTime', 'location', 'status', 'capacity'],
+    fields: [
+      { name: 'title', label: 'Actividad', type: 'text', required: true, maxLength: 160, placeholder: 'Ej.: Jornada de clasificación' },
+      { name: 'description', label: 'Descripción', type: 'textarea', required: true, maxLength: 5000, placeholder: 'Explica qué se hará y cómo puede apoyar la comunidad.' },
+      { name: 'date', label: 'Fecha', type: 'date', required: true },
+      { name: 'startTime', label: 'Hora de inicio', type: 'text', required: true, maxLength: 20, placeholder: 'Ej.: 8:00 a. m.' },
+      { name: 'endTime', label: 'Hora de cierre', type: 'text', required: true, maxLength: 20, placeholder: 'Ej.: 12:00 p. m.' },
+      { name: 'location', label: 'Lugar', type: 'text', required: true, maxLength: 160, placeholder: 'Ej.: Centro de acopio' },
+      { name: 'capacity', label: 'Cupos', type: 'number', required: true, min: 1 },
+      { name: 'registered', label: 'Personas inscritas', type: 'number', min: 0, description: 'Actualiza este número cuando se confirme la participación.' },
+      { name: 'status', label: 'Estado', type: 'select', required: true, options: [
+        { label: 'Abierta', value: 'abierta' },
+        { label: 'Llena', value: 'llena' },
+        { label: 'Finalizada', value: 'finalizada' },
+      ] },
+      { name: 'featured', label: 'Destacado', type: 'checkbox', description: 'La muestra primero como una actividad prioritaria.' },
+      { name: 'publicVisible', label: 'Visible públicamente', type: 'checkbox', description: 'La muestra en la sección Próximas actividades.' },
+      { name: 'lead', label: 'Persona responsable', type: 'text', maxLength: 160 },
     ],
   },
   {

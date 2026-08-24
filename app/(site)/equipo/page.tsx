@@ -18,6 +18,7 @@ function andWhere(...conditions: QueryWhere[]): QueryWhere {
 
 function dashboardVisibilityConditions(collection: string): Record<string, unknown>[] {
   if (collection === 'support-requests') return [{ status: { not_equals: 'cerrada' } }]
+  if (collection === 'volunteer-activities') return [{ publicVisible: { equals: true } }, { status: { equals: 'abierta' } }]
   if (collection === 'needs') return [{ publicVisible: { equals: true } }, { status: { not_equals: 'cerrada' } }]
   if (['announcements', 'bulletins', 'community-notices', 'services', 'distribution-evidence'].includes(collection)) {
     return [{ publicVisible: { equals: true } }, { status: { not_equals: 'archivado' } }]

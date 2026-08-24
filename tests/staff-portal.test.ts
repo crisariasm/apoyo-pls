@@ -20,6 +20,7 @@ test('todos los módulos y roles tienen una navegación consistente', () => {
   for (const role of dashboardRoleValues) {
     const modules = getModulesForRole(role)
     assert.ok(modules.some(({ slug }) => slug === 'administracion'), `${role} debe ver solicitudes`)
+    assert.ok(modules.some(({ slug }) => slug === 'actividades'), `${role} debe ver actividades`)
     assert.ok(modules.some(({ slug }) => slug === 'evidencias'), `${role} debe ver evidencias`)
     for (const module of modules) assert.equal(canAccessModule(module, role), true)
   }

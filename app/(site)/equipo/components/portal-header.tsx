@@ -25,7 +25,7 @@ const navSymbols: Record<string, string> = {
 }
 
 type RequestAlert = {
-  kind: 'need' | 'offer'
+  kind: 'need' | 'offer' | 'need-offer'
   title: string
   message: string
 }
@@ -132,11 +132,12 @@ export function PortalHeader({ name, userId, role, modules }: { name: string; us
     const newPendingRequest = Boolean(previous && isNewRequest(current, previous))
 
     if (newPendingRequest) {
+      const isNeedOffer = pendingSummary.latest?.source === 'need-offer'
       const isOffer = pendingSummary.latest?.helpType === 'ofrecer-ayuda'
       setRequestAlert({
-        kind: isOffer ? 'offer' : 'need',
-        title: isOffer ? 'Nueva oferta de ayuda' : 'Nueva solicitud de ayuda',
-        message: isOffer ? 'Alguien ofreció recursos, tiempo o transporte.' : 'Alguien necesita apoyo del centro.',
+        kind: isNeedOffer ? 'need-offer' : isOffer ? 'offer' : 'need',
+        title: isNeedOffer ? 'Nueva disponibilidad para una necesidad' : isOffer ? 'Nueva oferta de ayuda' : 'Nueva solicitud de ayuda',
+        message: isNeedOffer ? 'Alguien indicó que tiene un recurso publicado en “Qué necesitamos”.' : isOffer ? 'Alguien ofreció recursos, tiempo o transporte.' : 'Alguien necesita apoyo del centro.',
       })
       if (alertTimerRef.current) window.clearTimeout(alertTimerRef.current)
       alertTimerRef.current = window.setTimeout(() => setRequestAlert(null), 8000)

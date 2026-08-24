@@ -118,6 +118,12 @@ test('una solicitud gestionada no puede regresar a pendiente', () => {
   assert.doesNotThrow(() => preventRegression({ data: { status: 'cerrada' }, originalDoc: { status: 'atendida' }, operation: 'update', req: {} } as never))
 })
 
+test('las solicitudes conservan el origen del botón Lo tengo', () => {
+  const source = namedFields(SupportRequests.fields).get('source') as { defaultValue?: string; options?: Array<{ value: string }> } | undefined
+  assert.equal(source?.defaultValue, 'public-form')
+  assert.deepEqual(source?.options?.map((option) => option.value), ['public-form', 'need-offer'])
+})
+
 test('la auditoría automática limita texto y conserva creador/editor', () => {
   const audited = withAuditFields(Resources)
   const fields = namedFields(audited.fields)

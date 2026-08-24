@@ -92,6 +92,7 @@ export function NeedOfferModal({ title, zone = 'Pereira', quantity }: NeedOfferM
         body: JSON.stringify({
           requestType: 'oferta',
           helpType: 'ofrecer-ayuda',
+          source: 'need-offer',
           category: title,
           zone,
           quantity: Number(cleanAmount),

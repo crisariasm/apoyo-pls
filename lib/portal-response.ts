@@ -65,7 +65,7 @@ export function sanitizePortalRecord(module: PortalModule, value: unknown) {
     ...module.fields.map((field) => field.name),
   ])
   if (module.slug === 'administracion') {
-    for (const field of ['helpType', 'requestType', 'category', 'zone', 'quantity', 'quantityUnit', 'description', 'contactName', 'phone', 'privacyAccepted']) {
+    for (const field of ['source', 'helpType', 'requestType', 'category', 'zone', 'quantity', 'quantityUnit', 'description', 'contactName', 'phone', 'privacyAccepted']) {
       allowedKeys.add(field)
     }
   }

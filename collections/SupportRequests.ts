@@ -36,7 +36,7 @@ export const SupportRequests: CollectionConfig = {
   slug: 'support-requests',
   admin: {
     useAsTitle: 'requestType',
-    defaultColumns: ['helpType', 'requestType', 'zone', 'status', 'createdAt'],
+    defaultColumns: ['source', 'helpType', 'requestType', 'zone', 'status', 'createdAt'],
     group: 'Atención interna',
     description: 'Solicitudes recibidas desde la página pública. No se publican nombres ni datos individuales.',
   },
@@ -61,6 +61,10 @@ export const SupportRequests: CollectionConfig = {
       { label: 'Ofrecer recursos', value: 'oferta' },
       { label: 'Solicitar transporte', value: 'transporte' },
       { label: 'Ofrecer voluntariado', value: 'voluntariado' },
+    ] },
+    { name: 'source', type: 'select', label: 'Origen del mensaje', required: true, defaultValue: 'public-form', options: [
+      { label: 'Formulario público', value: 'public-form' },
+      { label: 'Botón “Lo tengo”', value: 'need-offer' },
     ] },
     { name: 'category', type: 'text', label: 'Categoría', required: true, maxLength: 120 },
     { name: 'zone', type: 'text', label: 'Zona o barrio', required: true, maxLength: 160 },

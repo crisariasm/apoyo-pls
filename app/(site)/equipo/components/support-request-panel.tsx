@@ -26,6 +26,11 @@ const helpTypeLabels: Record<string, string> = {
   'ofrecer-ayuda': 'Ofrecer ayuda',
 }
 
+const sourceLabels: Record<string, string> = {
+  'public-form': 'Formulario público',
+  'need-offer': 'Desde “Lo tengo”',
+}
+
 function label(value: unknown, labels: Record<string, string>, fallback = 'Sin información') {
   if (typeof value !== 'string' || !value) return fallback
   return labels[value] || value
@@ -76,6 +81,14 @@ function statusClass(status: unknown) {
 function helpType(record: RecordData) {
   if (typeof record.helpType === 'string') return record.helpType
   return ['oferta', 'transporte', 'voluntariado'].includes(String(record.requestType)) ? 'ofrecer-ayuda' : 'necesitar-ayuda'
+}
+
+function source(record: RecordData) {
+  return typeof record.source === 'string' ? record.source : 'public-form'
+}
+
+function isNeedOffer(record: RecordData) {
+  return source(record) === 'need-offer'
 }
 
 export function SupportRequestPanel({ initialRecords, canManage }: { initialRecords: RecordData[]; canManage: boolean }) {
@@ -199,13 +212,14 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
       </div>
 
       {selected && <div className="staff-edit-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeRecord() }}>
-        <section className="staff-request-modal" role="dialog" aria-modal="true" aria-labelledby="staff-request-modal-title">
+        <section className={`staff-request-modal${isNeedOffer(selected) ? ' is-need-offer' : ''}`} role="dialog" aria-modal="true" aria-labelledby="staff-request-modal-title">
           <div className="staff-modal-heading">
-            <div><p className="staff-eyebrow">Detalle de la solicitud</p><h2 id="staff-request-modal-title">{label(selected.requestType, requestTypeLabels)}</h2><span className={`staff-request-status ${statusClass(status)}`}>{label(status, statusLabels)}</span></div>
+            <div><p className="staff-eyebrow">Detalle de la solicitud</p><h2 id="staff-request-modal-title">{label(selected.requestType, requestTypeLabels)}</h2><span className={`staff-request-origin${isNeedOffer(selected) ? ' is-need-offer' : ''}`}>{label(source(selected), sourceLabels)}</span> <span className={`staff-request-status ${statusClass(status)}`}>{label(status, statusLabels)}</span></div>
             <button className="staff-modal-close" type="button" aria-label="Cerrar solicitud" onClick={closeRecord}>×</button>
           </div>
           <div className="staff-request-detail-grid">
             <Detail label="Tipo de ayuda" value={label(helpType(selected), helpTypeLabels)} />
+            <Detail label="Origen" value={label(source(selected), sourceLabels)} />
             <Detail label="Categoría" value={selected.category} />
             <Detail label="Zona o barrio" value={selected.zone} />
             <Detail label="Cantidad aproximada" value={quantityValue(selected)} />
@@ -232,8 +246,8 @@ export function SupportRequestPanel({ initialRecords, canManage }: { initialReco
 
 function RequestCard({ record, onOpen, saved = false, now }: { record: RecordData; onOpen: (record: RecordData) => void; saved?: boolean; now: number }) {
   const status = typeof record.status === 'string' ? record.status : 'pendiente'
-  return <article className="staff-request-item">
-    <div className="staff-request-copy"><div className="staff-request-item-heading"><div><span className="staff-request-kind">{label(helpType(record), helpTypeLabels)}</span><h3>{label(record.requestType, requestTypeLabels)}</h3></div><span className={`staff-request-status ${statusClass(status)}`}>{label(status, statusLabels)}</span></div><p>{value(record.category)} · {value(record.zone)}</p><small><time dateTime={typeof record.createdAt === 'string' ? record.createdAt : undefined}>{relativeElapsed(record.createdAt, now)} · {dateValue(record.createdAt)}</time> · {saved ? `Registrada por ${value(record.registeredBy || 'Formulario público')}` : 'Pendiente de lectura'}</small></div>
+  return <article className={`staff-request-item${isNeedOffer(record) ? ' is-need-offer' : ''}`}>
+    <div className="staff-request-copy"><div className="staff-request-item-heading"><div><span className={`staff-request-kind${isNeedOffer(record) ? ' is-need-offer' : ''}`}>{isNeedOffer(record) ? 'Desde “Lo tengo”' : label(helpType(record), helpTypeLabels)}</span><h3>{label(record.requestType, requestTypeLabels)}</h3></div><span className={`staff-request-status ${statusClass(status)}`}>{label(status, statusLabels)}</span></div><p>{value(record.category)} · {value(record.zone)}</p><small><time dateTime={typeof record.createdAt === 'string' ? record.createdAt : undefined}>{relativeElapsed(record.createdAt, now)} · {dateValue(record.createdAt)}</time> · {saved ? `Registrada por ${value(record.registeredBy || 'Formulario público')}` : 'Pendiente de lectura'}</small></div>
     <button className="staff-outline-button" type="button" onClick={() => onOpen(record)}>{saved ? 'Ver información' : 'Abrir solicitud'}</button>
   </article>
 }

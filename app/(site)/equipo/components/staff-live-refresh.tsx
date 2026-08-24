@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 
 export type PendingSummary = {
   pending: number
-  latest: { id?: string; helpType?: string; createdAt?: string } | null
+  latest: { id?: string; source?: string; helpType?: string; createdAt?: string } | null
 }
 
 export type StaffModuleSnapshot = {

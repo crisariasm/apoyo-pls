@@ -630,6 +630,7 @@ export interface SupportRequest {
   id: string;
   helpType: 'necesitar-ayuda' | 'ofrecer-ayuda';
   requestType: 'recursos' | 'oferta' | 'transporte' | 'voluntariado';
+  source: 'public-form' | 'need-offer';
   category: string;
   zone: string;
   /**
@@ -1091,6 +1092,7 @@ export interface VolunteerActivitiesSelect<T extends boolean = true> {
 export interface SupportRequestsSelect<T extends boolean = true> {
   helpType?: T;
   requestType?: T;
+  source?: T;
   category?: T;
   zone?: T;
   quantity?: T;

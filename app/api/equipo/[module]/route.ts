@@ -64,7 +64,7 @@ export async function GET(request: Request, context: RouteContext) {
         : ['oferta', 'transporte', 'voluntariado'].includes(requestType) ? 'ofrecer-ayuda' : 'necesitar-ayuda'
       return NextResponse.json({
         pending: result.totalDocs,
-        latest: latest ? { id: latest.id, helpType: inferredHelpType, createdAt: latest.createdAt } : null,
+        latest: latest ? { id: latest.id, source: latest.source, helpType: inferredHelpType, createdAt: latest.createdAt } : null,
       })
     } catch {
       return NextResponse.json({ message: 'No fue posible consultar las solicitudes pendientes.' }, { status: 500 })

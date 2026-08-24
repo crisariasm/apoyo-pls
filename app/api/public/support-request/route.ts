@@ -37,6 +37,7 @@ export async function POST(request: Request) {
 
   const requestType = typeof body.requestType === 'string' ? body.requestType : ''
   const helpType = typeof body.helpType === 'string' ? body.helpType : ''
+  const source = body.source === 'need-offer' ? 'need-offer' : 'public-form'
   const category = textWithin(body.category, 120, true)
   const zone = textWithin(body.zone, 160, true)
   const quantityProvided = body.quantity !== undefined && body.quantity !== null && body.quantity !== ''
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
       data: {
         requestType,
         helpType,
+        source,
         category,
         zone,
         ...(quantityProvided ? { quantity: quantityValue(body.quantity) } : {}),

@@ -73,11 +73,12 @@ export async function POST(request: Request) {
   if (file.size > MAX_IMAGE_SIZE) return NextResponse.json({ message: 'La imagen no puede superar los 10 MB.' }, { status: 400 })
 
   let key: string | null = null
+  let payload: Awaited<ReturnType<typeof getPayload>> | null = null
   try {
     const optimized = await optimizeImage(Buffer.from(await file.arrayBuffer()), file.name)
     key = createR2Key(optimized.filename)
     await putR2Object(key, optimized.buffer, optimized.mimeType)
-    const payload = await getPayload({ config })
+    payload = await getPayload({ config })
     const media = await payload.create({
       collection: 'media',
       data: {
@@ -98,8 +99,11 @@ export async function POST(request: Request) {
       user: session.user,
     })
     return NextResponse.json({ doc: { id: media.id, url: `/api/media/${String(media.id)}`, filename: optimized.filename, mimeType: optimized.mimeType, filesize: optimized.filesize, width: optimized.width, height: optimized.height, alt } }, { status: 201 })
-  } catch {
-    if (key) await deleteR2Object(key).catch(() => undefined)
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    payload?.logger.error({ err: error, fileName: file.name, fileSize: file.size, fileType: file.type, msg: 'Falló la carga de una imagen del portal.' })
+    if (!payload) console.error('[media-upload] Falló la carga de una imagen del portal.', { error: errorMessage, fileName: file.name, fileSize: file.size, fileType: file.type })
+    if (key) await deleteR2Object(key).catch((cleanupError) => console.error('[media-upload] No fue posible limpiar el objeto temporal de R2.', { error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError), key }))
     return NextResponse.json({ message: 'No fue posible cargar la imagen.' }, { status: 500 })
   }
 }

@@ -58,6 +58,8 @@ test('valida obligatorios, números, fechas, selectores, booleanos y uploads', (
   const notices = getPortalModule('comunicados')!
   assert.match(validatePortalData(notices, { image: 'no-uuid' }, { partial: true }) || '', /no es válida/)
   assert.equal(validatePortalData(notices, { image: randomUUID() }, { partial: true }), null)
+  assert.equal(validatePortalData(notices, { image: { id: randomUUID(), filename: 'foto.jpg' } }, { partial: true }), null)
+  assert.equal(validatePortalData(notices, { image: { name: 'foto.jpg', arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)) } }, { partial: true }), null)
 })
 
 test('valida reglas cruzadas de necesidades, evidencias y publicaciones', () => {

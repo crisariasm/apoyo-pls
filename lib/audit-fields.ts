@@ -90,6 +90,8 @@ const stampAuditFields: CollectionBeforeChangeHook = ({ data, req, operation, co
 }
 
 export function withAuditFields(collection: CollectionConfig): CollectionConfig {
+  const auditReadAccess = collection.slug === 'users' ? () => false : isPayloadAdminUser
+
   return {
     ...collection,
     fields: [
@@ -99,7 +101,7 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         type: 'text',
         label: 'Registrado por',
         maxLength: 160,
-        access: { read: isPayloadAdminUser },
+        access: { read: auditReadAccess },
         admin: { readOnly: true, description: 'Se completa automáticamente con la persona que creó el registro.' },
       },
       {
@@ -108,7 +110,7 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         label: 'ID del creador',
         index: true,
         maxLength: 64,
-        access: { read: isPayloadAdminUser },
+        access: { read: auditReadAccess },
         admin: { readOnly: true, hidden: true },
       },
       {
@@ -116,7 +118,7 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         type: 'text',
         label: 'Última actualización por',
         maxLength: 160,
-        access: { read: isPayloadAdminUser },
+        access: { read: auditReadAccess },
         admin: { readOnly: true, description: 'Se actualiza automáticamente con la última persona que lo modificó.' },
       },
       {
@@ -125,7 +127,7 @@ export function withAuditFields(collection: CollectionConfig): CollectionConfig 
         label: 'ID de quien actualizó',
         index: true,
         maxLength: 64,
-        access: { read: isPayloadAdminUser },
+        access: { read: auditReadAccess },
         admin: { readOnly: true, hidden: true },
       },
     ],

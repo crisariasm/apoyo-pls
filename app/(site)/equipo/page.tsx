@@ -2,8 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { PortalShell } from './components/portal-shell'
-import { getModulesForRole } from '../../../lib/staff-portal-config'
-import { dashboardRoleLabels } from '../../../lib/staff-portal-config'
+import { dashboardRoleLabels, getModulesForRole } from '../../../lib/staff-portal-config'
 import { requireStaffSession } from '../../../lib/staff-portal-auth'
 
 export const dynamic = 'force-dynamic'
@@ -76,15 +75,15 @@ export default async function StaffDashboard() {
         <Link href="/" className="staff-back-link">Ver página pública</Link>
       </section>
       <section className="staff-kpi-grid" aria-label="Indicadores del portal">
-        <article className="staff-kpi-card"><span>Registros bajo tu cuidado</span><strong>{totals.total.toLocaleString('es-CO')}</strong><small>{session.user.role === 'administracion' ? 'Todos los módulos administrados' : 'Creados por tu usuario'}</small></article>
-        <article className="staff-kpi-card"><span>Visibles o publicados</span><strong>{totals.visible.toLocaleString('es-CO')}</strong><small>Información disponible para la comunidad</small></article>
+        <article className="staff-kpi-card"><span>{session.user.role === 'administracion' ? 'Registros administrados' : 'Registros creados por ti'}</span><strong>{totals.total.toLocaleString('es-CO')}</strong><small>{session.user.role === 'administracion' ? 'Todos los módulos administrados' : 'Registros con tu identificador como creador'}</small></article>
+        <article className="staff-kpi-card"><span>{session.user.role === 'administracion' ? 'Visibles o publicados' : 'Visibles de tus registros'}</span><strong>{totals.visible.toLocaleString('es-CO')}</strong><small>{session.user.role === 'administracion' ? 'Información disponible para la comunidad' : 'Información pública creada por ti'}</small></article>
       </section>
       <section className="staff-insights-grid">
         <article className="staff-insight-card"><div className="staff-card-heading"><div><p className="staff-eyebrow">Carga de trabajo</p><h2>Registros por módulo</h2></div></div><div className="staff-chart-list">{modules.map((module) => { const snapshot = snapshots.find((item) => item.slug === module.slug); const count = chartCount(snapshot); const width = `${Math.max(4, (count / maxCount) * 100)}%`; return <div className="staff-chart-row" key={module.slug}><div><span>{module.label}</span><strong>{count}</strong></div><i><b style={{ width }} /></i></div> })}</div></article>
-        <article className="staff-insight-card staff-status-card"><div className="staff-card-heading"><div><p className="staff-eyebrow">Lectura rápida</p><h2>Visibilidad de tus registros</h2></div></div><div className="staff-status-visual"><div className="staff-donut" style={{ background: `conic-gradient(#2e8060 0 ${visiblePercent}%, #d9e7df ${visiblePercent}% 100%)` }}><div><strong>{visiblePercent}%</strong><small>visibles</small></div></div><div className="staff-legend"><span><i /> Visibles {totals.visible}</span><span><i /> Aún no visibles {unpublished}</span></div></div><div className="staff-status-list"><div><span>Visibles o publicados</span><strong>{totals.visible}</strong></div><div><span>Aún no visibles</span><strong>{unpublished}</strong></div><div><span>Registros propios</span><strong>{totals.total}</strong></div></div><p>Solo se cuentan registros creados por tu usuario. La información se actualiza al volver a cargar el dashboard.</p></article>
+          <article className="staff-insight-card staff-status-card"><div className="staff-card-heading"><div><p className="staff-eyebrow">Lectura rápida</p><h2>{session.user.role === 'administracion' ? 'Visibilidad de todos los registros' : 'Visibilidad de tus registros creados'}</h2></div></div><div className="staff-status-visual"><div className="staff-donut" style={{ background: `conic-gradient(#2e8060 0 ${visiblePercent}%, #d9e7df ${visiblePercent}% 100%)` }}><div><strong>{visiblePercent}%</strong><small>visibles</small></div></div><div className="staff-legend"><span><i /> Visibles {totals.visible}</span><span><i /> Aún no visibles {unpublished}</span></div></div><div className="staff-status-list"><div><span>Visibles o publicados</span><strong>{totals.visible}</strong></div><div><span>Aún no visibles</span><strong>{unpublished}</strong></div><div><span>{session.user.role === 'administracion' ? 'Registros administrados' : 'Registros creados por ti'}</span><strong>{totals.total}</strong></div></div><p>{session.user.role === 'administracion' ? 'Se cuentan todos los registros de los módulos administrados.' : 'Se cuentan solo los registros cuyo creador eres tú. Las listas de cada módulo siguen mostrando los registros compartidos del equipo.'}</p></article>
       </section>
       <section className="staff-module-grid" aria-label="Módulos disponibles">
-        {modules.map((module) => <Link className="staff-module-card" href={`/equipo/${module.slug}`} key={module.slug}><span>{module.label}</span><strong>{snapshots.find((item) => item.slug === module.slug)?.sharedTotal || 0}</strong><small>{module.description}</small><em>Administrar información →</em></Link>)}
+        {modules.map((module) => <Link className="staff-module-card" href={`/equipo/${module.slug}`} key={module.slug}><span>{module.label}</span><strong>{snapshots.find((item) => item.slug === module.slug)?.sharedTotal || 0}</strong><small>{module.description}</small><em>{session.user.role === 'administracion' ? 'Todos los registros del módulo · Administrar →' : 'Registros compartidos del módulo · Administrar →'}</em></Link>)}
       </section>
     </PortalShell>
   )

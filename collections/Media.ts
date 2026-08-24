@@ -61,7 +61,7 @@ export const Media: CollectionConfig = {
   admin: { group: 'Contenido' },
   access: {
     admin: isPayloadAdminUser,
-    read: () => true,
+    read: isPayloadAdminUser,
     create: isPayloadAdminUser,
     update: isPayloadAdminUser,
     delete: isPayloadAdminUser,

@@ -24,6 +24,22 @@ async function json(response: Response) {
   return response.json() as Promise<JsonRecord>
 }
 
+function assertNoSensitiveFields(value: unknown, label: string) {
+  const forbidden = new Set(['password', 'hash', 'salt', 'token', 'apiKey', 'sessions', 'resetPasswordToken', 'resetPasswordExpiration', 'r2Key', 'r2Filename', 'r2MimeType', 'r2Filesize', 'uploadedByUserId', 'uploadedByName', 'registeredByUserId', 'updatedByUserId'])
+  const inspect = (current: unknown, path: string, depth: number) => {
+    if (depth > 8 || current === null || current === undefined || typeof current !== 'object') return
+    if (Array.isArray(current)) {
+      current.forEach((item, index) => inspect(item, `${path}[${index}]`, depth + 1))
+      return
+    }
+    for (const [key, item] of Object.entries(current as JsonRecord)) {
+      assert.equal(forbidden.has(key), false, `${label}: no debe devolver ${path}.${key}`)
+      inspect(item, `${path}.${key}`, depth + 1)
+    }
+  }
+  inspect(value, label, 0)
+}
+
 function responseCookie(response: Response) {
   const raw = response.headers.get('set-cookie') || ''
   const match = raw.match(/(?:^|,\s*)([^=;,\s]+=[^;,]*)/)
@@ -37,7 +53,9 @@ async function loginTeam(email: string, password = teamPassword, address = `10.2
     headers: sameOriginHeaders({ 'content-type': 'application/json', 'x-forwarded-for': address }),
     body: JSON.stringify({ email, password }),
   })
-  return { response, body: await json(response), cookie: response.ok ? responseCookie(response) : '' }
+  const body = await json(response)
+  assertNoSensitiveFields(body, `/api/equipo/login (${email})`)
+  return { response, body, cookie: response.ok ? responseCookie(response) : '' }
 }
 
 const pages = [
@@ -78,7 +96,7 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
   })
 
   await t.test('el acceso administrativo usa la identidad de PLs al llamado', async () => {
-    const response = await request('/admin')
+    const response = await request('/admin/login')
     assert.equal(response.status, 200)
     const html = await response.text()
     assert.match(html, /pls-admin-login-brand/)
@@ -96,7 +114,13 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
       assert.equal(body.mode, 'live', endpoint)
       assert.ok(Array.isArray(body.docs), endpoint)
       assert.ok((body.docs as unknown[]).length > 0, `${endpoint} debe estar poblado por el seeder`)
+      assertNoSensitiveFields(body.docs, `/api/public/${endpoint}`)
     }
+
+    const directPayload = await request('/api/resources')
+    assert.ok([401, 403].includes(directPayload.status), 'El API REST de Payload no debe exponer inventario anónimo')
+    const directSettings = await request('/api/globals/site-settings')
+    assert.ok([401, 403].includes(directSettings.status), 'El global de configuración no debe exponerse por Payload')
 
     const overviewResponse = await request('/api/public/overview', { headers: { 'x-forwarded-for': '172.20.0.30' } })
     const overview = await json(overviewResponse)
@@ -166,7 +190,7 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
       assert.equal(login.response.status, 200, role)
       assert.equal(login.body.user && (login.body.user as JsonRecord).role, role)
       for (const module of [ownModule, 'evidencias', 'administracion']) {
-        const response = await request(`/api/equipo/${module}?page=1&limit=8`, { headers: { cookie: login.cookie } })
+        const response = await request(`/api/equipo/${module}?page=1&limit=8`, { headers: sameOriginHeaders({ cookie: login.cookie }) })
         assert.equal(response.status, 200, `${role} -> ${module}`)
       }
       const foreignModule = ownModule === 'inventario' ? 'boletin' : 'inventario'
@@ -195,10 +219,12 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
       })
       assert.equal(createResponse.status, 201, `${scenario.module}: crear ${JSON.stringify(await createResponse.clone().json())}`)
       const created = await json(createResponse)
+      assertNoSensitiveFields(created, `/api/equipo/${scenario.module} POST`)
       const id = String((created.doc as JsonRecord).id)
 
-      const listResponse = await request(`/api/equipo/${scenario.module}?page=1&limit=20`, { headers: { cookie: login.cookie } })
+      const listResponse = await request(`/api/equipo/${scenario.module}?page=1&limit=20`, { headers: sameOriginHeaders({ cookie: login.cookie }) })
       const list = await json(listResponse)
+      assertNoSensitiveFields(list, `/api/equipo/${scenario.module}`)
       assert.ok((list.docs as JsonRecord[]).some((doc) => String(doc.id) === id), `${scenario.module}: listar`)
 
       const updateResponse = await request(`/api/equipo/${scenario.module}`, {
@@ -206,6 +232,7 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
         body: JSON.stringify({ id, ...scenario.patch }),
       })
       assert.equal(updateResponse.status, 200, `${scenario.module}: editar`)
+      assertNoSensitiveFields(await json(updateResponse), `/api/equipo/${scenario.module} PATCH`)
 
       const deleteResponse = await request(`/api/equipo/${scenario.module}`, {
         method: 'DELETE', headers: sameOriginHeaders({ cookie: login.cookie, 'content-type': 'application/json', 'x-forwarded-for': `172.27.${crudCases.indexOf(scenario) + 1}.1` }), body: JSON.stringify({ id }),
@@ -230,7 +257,7 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
 
   await t.test('todas las personas gestionan solicitudes y no revierten una atendida', async () => {
     const login = await loginTeam('inventario@plsalllamado.local', teamPassword, '172.30.0.1')
-    const listResponse = await request('/api/equipo/administracion', { headers: { cookie: login.cookie } })
+    const listResponse = await request('/api/equipo/administracion', { headers: sameOriginHeaders({ cookie: login.cookie }) })
     const list = await json(listResponse)
     assert.ok((list.docs as JsonRecord[]).some((doc) => String(doc.id) === publicRequestId))
 
@@ -254,6 +281,7 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
     const login = await loginTeam('inventario@plsalllamado.local', teamPassword, '172.31.0.1')
     const refresh = await request('/api/equipo/refresh', { method: 'POST', headers: sameOriginHeaders({ cookie: login.cookie, 'x-forwarded-for': '172.31.0.2' }) })
     assert.equal(refresh.status, 200)
+    assertNoSensitiveFields(await json(refresh), '/api/equipo/refresh')
     const refreshedCookie = responseCookie(refresh)
     const logout = await request('/api/equipo/logout', { method: 'POST', headers: sameOriginHeaders({ cookie: refreshedCookie }) })
     assert.equal(logout.status, 200)
@@ -270,12 +298,17 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
     assert.equal(loginResponse.status, 200)
     const loginBody = await json(loginResponse)
     assert.equal('token' in loginBody, false)
+    assertNoSensitiveFields(loginBody, '/api/users/login')
     const adminCookie = responseCookie(loginResponse)
 
-    const auditResponse = await request('/api/audit-logs?limit=1', { headers: { cookie: adminCookie } })
+    const currentUserResponse = await request('/api/users/me', { headers: sameOriginHeaders({ cookie: adminCookie }) })
+    assert.equal(currentUserResponse.status, 200)
+    assertNoSensitiveFields(await json(currentUserResponse), '/api/users/me')
+
+    const auditResponse = await request('/api/audit-logs?limit=1', { headers: sameOriginHeaders({ cookie: adminCookie }) })
     assert.equal(auditResponse.status, 200)
 
-    const monitoring = await request('/admin/monitoring', { headers: { cookie: adminCookie } })
+    const monitoring = await request('/admin/monitoring', { headers: sameOriginHeaders({ cookie: adminCookie }) })
     assert.equal(monitoring.status, 200)
     const html = await monitoring.text()
     assert.match(html, /Monitoreo/i)

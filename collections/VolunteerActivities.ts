@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { canManageActivities, isPayloadAdminUser, publicOpenStatusRead } from '../lib/access'
+import { canManageActivities, isPayloadAdminUser } from '../lib/access'
 
 export const VolunteerActivities: CollectionConfig = {
   slug: 'volunteer-activities',
@@ -11,7 +11,7 @@ export const VolunteerActivities: CollectionConfig = {
   },
   access: {
     admin: isPayloadAdminUser,
-    read: publicOpenStatusRead,
+    read: isPayloadAdminUser,
     create: canManageActivities,
     update: canManageActivities,
     delete: canManageActivities,

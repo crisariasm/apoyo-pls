@@ -1,6 +1,7 @@
-import { ValidationError, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
+import { ValidationError, type CollectionAfterChangeHook, type CollectionAfterDeleteHook, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
-import { canManageNotices, isPayloadAdminUser, publicStatusRead } from '../lib/access'
+import { canManageNotices, isPayloadAdminUser } from '../lib/access'
+import { deleteUnreferencedMedia, mediaReferencesFromDocument } from '../lib/media-cleanup'
 
 const validateNoticeImage: CollectionBeforeValidateHook = ({ data, operation, req }) => {
   const isSeedContext = req.context?.seed === true
@@ -16,6 +17,14 @@ const validateNoticeImage: CollectionBeforeValidateHook = ({ data, operation, re
   return data
 }
 
+const cleanupNoticeMedia: CollectionAfterChangeHook = async ({ operation, previousDoc, req }) => {
+  if (operation === 'update') await deleteUnreferencedMedia(req.payload, mediaReferencesFromDocument(previousDoc))
+}
+
+const cleanupDeletedNoticeMedia: CollectionAfterDeleteHook = async ({ doc, req }) => {
+  await deleteUnreferencedMedia(req.payload, mediaReferencesFromDocument(doc))
+}
+
 export const CommunityNotices: CollectionConfig = {
   slug: 'community-notices',
   admin: {
@@ -26,12 +35,12 @@ export const CommunityNotices: CollectionConfig = {
   },
   access: {
     admin: isPayloadAdminUser,
-    read: publicStatusRead,
+    read: isPayloadAdminUser,
     create: canManageNotices,
     update: canManageNotices,
     delete: canManageNotices,
   },
-  hooks: { beforeValidate: [validateNoticeImage] },
+  hooks: { beforeValidate: [validateNoticeImage], afterChange: [cleanupNoticeMedia], afterDelete: [cleanupDeletedNoticeMedia] },
   fields: [
     { name: 'title', type: 'text', label: 'Título', required: true },
     { name: 'body', type: 'textarea', label: 'Descripción', required: true },

@@ -1,6 +1,7 @@
-import { ValidationError, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
+import { ValidationError, type CollectionAfterChangeHook, type CollectionAfterDeleteHook, type CollectionBeforeValidateHook, type CollectionConfig } from 'payload'
 
-import { canManageDistribution, isPayloadAdminUser, publicStatusRead } from '../lib/access'
+import { canManageDistribution, isPayloadAdminUser } from '../lib/access'
+import { deleteUnreferencedMedia, mediaReferencesFromDocument } from '../lib/media-cleanup'
 
 const validateEvidenceSource: CollectionBeforeValidateHook = ({ data, operation, req }) => {
   const isSeedContext = req.context?.seed === true
@@ -25,6 +26,14 @@ const validateEvidenceSource: CollectionBeforeValidateHook = ({ data, operation,
   return data
 }
 
+const cleanupEvidenceMedia: CollectionAfterChangeHook = async ({ operation, previousDoc, req }) => {
+  if (operation === 'update') await deleteUnreferencedMedia(req.payload, mediaReferencesFromDocument(previousDoc))
+}
+
+const cleanupDeletedEvidenceMedia: CollectionAfterDeleteHook = async ({ doc, req }) => {
+  await deleteUnreferencedMedia(req.payload, mediaReferencesFromDocument(doc))
+}
+
 export const DistributionEvidence: CollectionConfig = {
   slug: 'distribution-evidence',
   admin: {
@@ -35,12 +44,12 @@ export const DistributionEvidence: CollectionConfig = {
   },
   access: {
     admin: isPayloadAdminUser,
-    read: publicStatusRead,
+    read: isPayloadAdminUser,
     create: canManageDistribution,
     update: canManageDistribution,
     delete: canManageDistribution,
   },
-  hooks: { beforeValidate: [validateEvidenceSource] },
+  hooks: { beforeValidate: [validateEvidenceSource], afterChange: [cleanupEvidenceMedia], afterDelete: [cleanupDeletedEvidenceMedia] },
   fields: [
     {
       name: 'sourceType',

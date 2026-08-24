@@ -1,6 +1,6 @@
 import type { GlobalConfig } from 'payload'
 
-import { isCoordinator } from '../lib/access'
+import { isCoordinator, isPayloadAdminUser } from '../lib/access'
 import { auditGlobalChange } from '../lib/audit-log'
 import { isValidPhone } from '../lib/public-request-validation'
 
@@ -9,7 +9,7 @@ export const SiteSettings: GlobalConfig = {
   label: 'Configuración del centro',
   admin: { group: 'Contenido' },
   access: {
-    read: () => true,
+    read: isPayloadAdminUser,
     update: isCoordinator,
   },
   hooks: { afterChange: [auditGlobalChange] },

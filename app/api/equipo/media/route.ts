@@ -4,6 +4,7 @@ import { getPayload } from 'payload'
 import config from '../../../../payload.config'
 import { InvalidRequestBodyError, checkRateLimit, getClientAddress, isPlainRecord, isSameOriginRequest, readJsonBody, readRequestBody, RequestBodyTooLargeError, textWithin } from '../../../../lib/input-security'
 import { optimizeImage } from '../../../../lib/image-processing'
+import { isMediaReferenced } from '../../../../lib/media-cleanup'
 import { getStaffSession } from '../../../../lib/staff-portal-auth'
 import { createR2Key, deleteR2Object, isR2Enabled, putR2Object } from '../../../../lib/r2-storage'
 import { isUUID } from '../../../../lib/uuid'
@@ -15,7 +16,6 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 const MAX_MULTIPART_SIZE = MAX_IMAGE_SIZE + 256 * 1024
 const MEDIA_WRITE_RATE_LIMIT = 20
 const MEDIA_WRITE_RATE_WINDOW_MS = 15 * 60 * 1000
-const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 
 function canUploadForContext(role: string, context: string) {
   if (role === 'administracion') return context === 'comunicados' || context === 'evidencias'
@@ -26,7 +26,7 @@ function canUploadForContext(role: string, context: string) {
 
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ message: 'Origen de solicitud no permitido.' }, { status: 403 })
-  const session = await getStaffSession()
+  const session = await getStaffSession(request.headers)
   if (!session) return NextResponse.json({ message: 'Necesitas iniciar sesión.' }, { status: 401 })
   const userLimit = checkRateLimit(`media-upload-user:${session.user.id}`, MEDIA_WRITE_RATE_LIMIT, MEDIA_WRITE_RATE_WINDOW_MS)
   const ipLimit = checkRateLimit(`media-upload-ip:${getClientAddress(request)}`, MEDIA_WRITE_RATE_LIMIT * 2, MEDIA_WRITE_RATE_WINDOW_MS)
@@ -67,7 +67,9 @@ export async function POST(request: Request) {
   const alt = rawAlt ? textWithin(String(rawAlt), 160) : 'Imagen de PLs al llamado'
   if (!(file instanceof File)) return NextResponse.json({ message: 'Selecciona una imagen.' }, { status: 400 })
   if (!alt) return NextResponse.json({ message: 'El texto alternativo es demasiado largo.' }, { status: 400 })
-  if (!allowedImageTypes.has(file.type.toLowerCase())) return NextResponse.json({ message: 'Solo se permiten imágenes JPG, PNG, WebP o GIF.' }, { status: 400 })
+  // No se filtra por extensión ni por MIME declarado: distintos navegadores
+  // etiquetan de forma diferente formatos válidos. Sharp valida los bytes y
+  // convierte cualquier imagen que pueda decodificar a WebP.
   if (file.size > MAX_IMAGE_SIZE) return NextResponse.json({ message: 'La imagen no puede superar los 10 MB.' }, { status: 400 })
 
   let key: string | null = null
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
     const media = await payload.create({
       collection: 'media',
       data: {
-        alt: alt || 'Imagen de PLs al llamado',
+        alt,
         r2Key: key,
         filename: optimized.filename,
         mimeType: optimized.mimeType,
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
       overrideAccess: true,
       user: session.user,
     })
-    return NextResponse.json({ doc: { id: media.id, url: `/api/media/${String(media.id)}`, filename: optimized.filename, mimeType: optimized.mimeType, filesize: optimized.filesize, width: optimized.width, height: optimized.height, alt: alt || 'Imagen de PLs al llamado' } }, { status: 201 })
+    return NextResponse.json({ doc: { id: media.id, url: `/api/media/${String(media.id)}`, filename: optimized.filename, mimeType: optimized.mimeType, filesize: optimized.filesize, width: optimized.width, height: optimized.height, alt } }, { status: 201 })
   } catch {
     if (key) await deleteR2Object(key).catch(() => undefined)
     return NextResponse.json({ message: 'No fue posible cargar la imagen.' }, { status: 500 })
@@ -104,7 +106,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ message: 'Origen de solicitud no permitido.' }, { status: 403 })
-  const session = await getStaffSession()
+  const session = await getStaffSession(request.headers)
   if (!session) return NextResponse.json({ message: 'Necesitas iniciar sesión.' }, { status: 401 })
   const rateLimit = checkRateLimit(`media-delete-user:${session.user.id}`, MEDIA_WRITE_RATE_LIMIT * 3, MEDIA_WRITE_RATE_WINDOW_MS)
   if (!rateLimit.allowed) {
@@ -129,9 +131,11 @@ export async function DELETE(request: Request) {
     const media = await payload.findByID({ collection: 'media', id: body.id, overrideAccess: true, user: session.user }) as unknown as Record<string, unknown>
     const ownerId = typeof media.uploadedByUserId === 'string' ? media.uploadedByUserId : ''
     if (session.user.role !== 'administracion' && ownerId !== session.user.id) return NextResponse.json({ message: 'No tienes permiso para eliminar esta imagen.' }, { status: 403 })
+    if (await isMediaReferenced(payload, body.id)) return NextResponse.json({ message: 'La imagen todavía está asociada a un registro.' }, { status: 409 })
     await payload.delete({ collection: 'media', id: body.id, overrideAccess: true, user: session.user })
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (error) {
+    if (error && typeof error === 'object' && 'status' in error && error.status === 404) return NextResponse.json({ ok: true })
     return NextResponse.json({ message: 'No fue posible eliminar la imagen.' }, { status: 500 })
   }
 }

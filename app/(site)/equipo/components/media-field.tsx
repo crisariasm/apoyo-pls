@@ -38,7 +38,7 @@ export function MediaField({ label, value, description, onChange, onRemove }: { 
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={preview} alt="Vista previa de la imagen" onError={() => setPreviewError(true)} />
         <div><strong>{value instanceof File ? value.name : 'Imagen cargada'}</strong><button type="button" onClick={() => { if (existingId) onRemove?.(existingId); onChange(null) }}>Eliminar imagen</button></div>
-      </div> : <label className="staff-upload-picker"><input type="file" accept="image/*" onChange={(event) => onChange(event.currentTarget.files?.[0] || null)} /><span>Seleccionar imagen</span><small>PNG, JPG o WebP · máximo 10 MB</small></label>}
+      </div> : <label className="staff-upload-picker"><input type="file" accept="image/*" onChange={(event) => onChange(event.currentTarget.files?.[0] || null)} /><span>Seleccionar imagen</span><small>Cualquier formato de imagen compatible · máximo 10 MB</small></label>}
       {description && <small className="staff-upload-description">{description}</small>}
     </div>
   )

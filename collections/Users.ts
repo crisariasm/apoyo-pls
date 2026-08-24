@@ -1,4 +1,4 @@
-import type { Access, CollectionConfig } from 'payload'
+import type { Access, CollectionAfterReadHook, CollectionConfig } from 'payload'
 
 import { isPayloadAdminUser, roles, type StaffRole } from '../lib/access'
 import { auditLogin, auditLogout } from '../lib/audit-log'
@@ -20,6 +20,33 @@ const roleLabels: Record<StaffRole, string> = {
 const canReadOwnUserOrPayloadAdmin: Access = ({ id, req }) => {
   if (isPayloadAdminUser({ req })) return true
   return Boolean(req.user && req.user.collection === 'users' && id && String(req.user.id) === String(id))
+}
+
+function redactAuthUser(user: Record<string, unknown>) {
+  for (const key of ['password', 'hash', 'salt', 'sessions', 'resetPasswordToken', 'resetPasswordExpiration', 'apiKey']) {
+    delete user[key]
+  }
+}
+
+const AUTH_RESPONSE_REDACTED = 'users.authResponseRedacted'
+
+const redactAuthLoginUser = ({ user, req }: { user: Record<string, unknown>; req: { context: Record<string, unknown> } }) => {
+  redactAuthUser(user)
+  req.context[AUTH_RESPONSE_REDACTED] = true
+  return user
+}
+
+const redactAuthReadUser: CollectionAfterReadHook = ({ doc, req }) => {
+  if (req.context[AUTH_RESPONSE_REDACTED] && doc && typeof doc === 'object') redactAuthUser(doc as Record<string, unknown>)
+  return doc
+}
+
+const redactAuthResponse = ({ response }: { response: unknown }) => {
+  if (response && typeof response === 'object') {
+    const user = (response as { user?: unknown }).user
+    if (user && typeof user === 'object') redactAuthUser(user as Record<string, unknown>)
+  }
+  return response
 }
 
 export const Users: CollectionConfig = {
@@ -48,8 +75,10 @@ export const Users: CollectionConfig = {
     delete: isPayloadAdminUser,
   },
   hooks: {
-    afterLogin: [auditLogin],
+    afterLogin: [auditLogin, redactAuthLoginUser],
     afterLogout: [auditLogout],
+    afterRead: [redactAuthReadUser],
+    afterMe: [redactAuthResponse],
   },
   fields: [
     {

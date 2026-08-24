@@ -65,10 +65,15 @@ export function getDashboardRoleLabel(role: DashboardRole) {
   return dashboardRoleLabels[role]
 }
 
-export async function getStaffSession() {
+export async function getStaffSession(requestHeaders?: HeadersInit) {
   try {
     const payload = await getPayload({ config })
-    const result = await payload.auth({ headers: await headers() })
+    // En handlers API usamos los headers de la petición explícitamente. En
+    // algunos despliegues serverless, depender de next/headers() dentro de una
+    // función auxiliar puede perder la cookie aunque la página ya haya
+    // autenticado correctamente al usuario.
+    const authHeaders = requestHeaders ? new Headers(requestHeaders) : await headers()
+    const result = await payload.auth({ headers: authHeaders })
     const tokenUser = normalizeUser(result.user)
     if (!tokenUser) return null
     const currentRecord = await payload.findByID({ collection: 'users', id: tokenUser.id, depth: 0, overrideAccess: true })

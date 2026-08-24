@@ -843,14 +843,14 @@ Payload mantiene:
 - API general: `/api`
 - GraphQL habilitado por la configuración de Payload.
 
-Las reglas de acceso de Payload reservan la administración directa para `admin` y `super-admin`. El portal operativo utiliza endpoints propios y valida sus permisos antes de usar operaciones internas.
+Las reglas de lectura directa de las colecciones y del global reservan el API REST y GraphQL para usuarios autorizados de Payload. La comunidad utiliza únicamente `/api/public/*`: esas rutas consultan internamente con acceso explícito y convierten los documentos a DTOs públicos, sin notas operativas, referencias internas, campos de auditoría, credenciales ni metadatos de R2. El portal operativo utiliza endpoints propios y valida sus permisos antes de usar operaciones internas; sus respuestas también pasan por una lista segura de campos.
 
 ## Imágenes y Cloudflare R2
 
 ### Flujo de carga
 
 1. El usuario selecciona una imagen.
-2. El portal valida que sea JPG, PNG, WebP o GIF.
+2. El servidor no depende de la extensión ni del MIME declarado; Sharp valida que el contenido sea una imagen compatible.
 3. Se rechazan archivos superiores a 10 MB.
 4. Sharp corrige la orientación.
 5. Sharp redimensiona sin ampliar y limita el borde máximo a 1600 px.
@@ -867,6 +867,8 @@ Al eliminar una imagen desde el portal:
 - Se elimina el registro de `media`.
 - Se elimina el objeto correspondiente de R2.
 - Si una operación falla, el backend intenta limpiar el objeto temporal creado.
+
+Al eliminar o reemplazar un comunicado, una evidencia o una distribución, el backend revisa las referencias restantes antes de eliminar su media. Una imagen que todavía usa otro registro se conserva; una imagen sin referencias se elimina junto con su objeto de R2. Esto también cubre las evidencias legadas embebidas en las distribuciones.
 
 No se necesita una URL pública del bucket. El backend descarga los objetos de R2 y los sirve mediante una ruta propia con caché inmutable.
 

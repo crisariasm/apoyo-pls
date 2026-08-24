@@ -18,6 +18,15 @@ function isBlank(value: unknown) {
   return value === undefined || value === null || (typeof value === 'string' && value.trim() === '')
 }
 
+function isUploadValue(value: unknown) {
+  if (typeof value === 'string') return isUUID(value)
+  if (typeof File !== 'undefined' && value instanceof File) return true
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  if (typeof (value as { arrayBuffer?: unknown }).arrayBuffer === 'function') return true
+  const id = (value as { id?: unknown }).id
+  return typeof id === 'string' && isUUID(id)
+}
+
 function normalizeFieldValue(field: PortalField, value: unknown) {
   if (field.type === 'number' && value !== '' && value !== undefined && value !== null) return Number(value)
   if (field.type === 'text' || field.type === 'textarea') return typeof value === 'string' ? value.trim() : value
@@ -56,7 +65,10 @@ export function validatePortalData(module: PortalModule, data: FormData, options
       else if (field.min !== undefined && numberValue < field.min) errors.push(`${field.label} debe ser igual o mayor que ${field.min}.`)
     }
     if (field.type === 'date' && !isBlank(value) && Number.isNaN(new Date(String(value)).getTime())) errors.push(`${field.label} debe tener una fecha válida.`)
-    if (field.type === 'upload' && !isBlank(value) && (typeof value !== 'string' || !isUUID(value))) errors.push(`${field.label} no es válida.`)
+    // Antes de guardar, el navegador todavía conserva el File seleccionado o
+    // el objeto de media existente. El servidor recibirá el UUID después de
+    // que el panel complete la carga; ambos estados son válidos aquí.
+    if (field.type === 'upload' && !isBlank(value) && !isUploadValue(value)) errors.push(`${field.label} no es válida.`)
     const isDynamicEvidenceDistribution = module.slug === 'evidencias' && field.name === 'distribution' && typeof value === 'string' && isUUID(value)
     if (field.type === 'select' && !isBlank(value) && !isDynamicEvidenceDistribution && !field.options?.some((option) => option.value === value)) errors.push(`${field.label} contiene una opción no válida.`)
     if (field.type === 'checkbox' && !isBlank(value) && typeof value !== 'boolean') errors.push(`${field.label} debe ser verdadero o falso.`)

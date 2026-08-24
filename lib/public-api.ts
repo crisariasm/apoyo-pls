@@ -8,7 +8,7 @@ type PayloadLike = Record<string, unknown>
 
 type OverviewMode = 'live' | 'unavailable'
 export type PublicResource = { id: string; name: string; category: string; quantity: number; unit: string; status: string; detail: string; featured: boolean }
-export type PublicAidIntake = { id: string; resource: string; category: string; quantity: string; sourceType: string; sourceReference: string; status: string; receivedAt: string; publicVisible: boolean; notes: string; featured: boolean }
+export type PublicAidIntake = { id: string; resource: string; category: string; quantity: string; sourceType: string; status: string; receivedAt: string; featured: boolean }
 export type PublicNeed = { id: string; title: string; detail: string; quantity: string; priority: string; zone: string; category: string; featured: boolean }
 export type PublicAnnouncement = { id: string; type: string; title: string; time: string; tone: string; featured: boolean }
 export type PublicDistribution = { id: string; resource: string; quantity: string; destination: string; organization: string; status: string; date: string; evidence: Array<{ id: string; image: string; title: string; description: string }> }
@@ -153,7 +153,7 @@ export async function getOverview(options: { sections?: readonly PublicOverviewS
     // colección no hace que desaparezca toda la información pública.
     const safeFind = async (query: Record<string, unknown>) => {
       try {
-        const result = await payload.find(query as never)
+        const result = await payload.find({ ...query, overrideAccess: true } as never)
         return result.docs as unknown as PayloadLike[]
       } catch {
         return [] as PayloadLike[]
@@ -161,7 +161,7 @@ export async function getOverview(options: { sections?: readonly PublicOverviewS
     }
     const safeFindGlobal = async () => {
       try {
-        return await payload.findGlobal({ slug: 'site-settings' }) as unknown as PayloadLike
+        return await payload.findGlobal({ slug: 'site-settings', overrideAccess: true }) as unknown as PayloadLike
       } catch {
         return {} as PayloadLike
       }
@@ -228,8 +228,10 @@ export async function getOverview(options: { sections?: readonly PublicOverviewS
       center: {
         name: text(settingsData.centerName, emptyOverview.center.name), address: text(settingsData.address, emptyOverview.center.address), hours: text(settingsData.hours, emptyOverview.center.hours), status: text(settingsData.centerStatus, emptyOverview.center.status), lastUpdate: dateTimeLabel(settingsData.lastOperationalUpdate, emptyOverview.center.lastUpdate), contact: text(settingsData.phone, emptyOverview.center.contact),
       },
-      resources: resourceDocs.map((resource) => ({ id: text(resource.id, crypto.randomUUID()), name: text(resource.name, 'Recurso sin nombre'), category: categoryLabel(resource.category), quantity: Number(resource.quantity || 0), unit: text(resource.unit, 'unidades'), status: text(resource.status, 'disponible'), detail: text(resource.notes, 'Existencia registrada por el equipo de inventario.'), featured: resource.featured === true })),
-      aidIntakes: aidIntakeDocs.map((intake) => ({ id: text(intake.id, crypto.randomUUID()), resource: text(intake.resourceName, 'Ayuda recibida'), category: categoryLabel(intake.category), quantity: `${intake.quantity || 0} ${text(intake.unit, 'unidades')}`, sourceType: intakeSourceLabel(intake.sourceType), sourceReference: text(intake.sourceReference, 'Origen registrado por el equipo'), status: intakeStatusLabel(intake.status), receivedAt: dateTimeLabel(intake.receivedAt, 'Recibida recientemente'), publicVisible: intake.publicVisible !== false, notes: text(intake.notes, 'Ayuda registrada por el equipo de inventario.'), featured: intake.featured === true })),
+      // `notes` y `sourceReference` son campos operativos: no forman parte del
+      // contrato público aunque el registro esté marcado como visible.
+      resources: resourceDocs.map((resource) => ({ id: text(resource.id, crypto.randomUUID()), name: text(resource.name, 'Recurso sin nombre'), category: categoryLabel(resource.category), quantity: Number(resource.quantity || 0), unit: text(resource.unit, 'unidades'), status: text(resource.status, 'disponible'), detail: 'Existencia registrada por el equipo de inventario.', featured: resource.featured === true })),
+      aidIntakes: aidIntakeDocs.map((intake) => ({ id: text(intake.id, crypto.randomUUID()), resource: text(intake.resourceName, 'Ayuda recibida'), category: categoryLabel(intake.category), quantity: `${intake.quantity || 0} ${text(intake.unit, 'unidades')}`, sourceType: intakeSourceLabel(intake.sourceType), status: intakeStatusLabel(intake.status), receivedAt: dateTimeLabel(intake.receivedAt, 'Recibida recientemente'), featured: intake.featured === true })),
       needs: needDocs.map((need) => ({ id: text(need.id, crypto.randomUUID()), title: text(need.title, 'Necesidad del centro'), detail: text(need.detail, 'Detalle pendiente de actualización.'), quantity: need.quantity ? `${need.quantity} ${text(need.unit, '')}`.trim() : 'Por confirmar', priority: priorityLabel(need.priority), zone: text(need.zone, 'Zona por confirmar'), category: text(need.category, 'General'), featured: need.featured === true })),
       announcements: announcementDocs.map((announcement) => ({ id: text(announcement.id, crypto.randomUUID()), type: text(announcement.type, 'Información'), title: text(announcement.title, 'Actualización del centro'), time: dateTimeLabel(announcement.publishedAt, 'Publicado recientemente'), tone: announcementTone(announcement.type), featured: announcement.featured === true })),
       distributions: mappedDistributions,

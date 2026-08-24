@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import type { CollectionConfig } from 'payload'
+import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, CollectionConfig } from 'payload'
 
-import { canManageDistribution, isPayloadAdminUser, publicVisibleRead } from '../lib/access'
+import { canManageDistribution, isPayloadAdminUser } from '../lib/access'
+import { deleteUnreferencedMedia, mediaReferencesFromDocument } from '../lib/media-cleanup'
 import { isUUID } from '../lib/uuid'
 
 function ensureEvidenceUUIDs(data: Record<string, unknown> | undefined) {
@@ -17,6 +18,14 @@ function ensureEvidenceUUIDs(data: Record<string, unknown> | undefined) {
   }
 }
 
+const cleanupDistributionMedia: CollectionAfterChangeHook = async ({ operation, previousDoc, req }) => {
+  if (operation === 'update') await deleteUnreferencedMedia(req.payload, mediaReferencesFromDocument(previousDoc))
+}
+
+const cleanupDeletedDistributionMedia: CollectionAfterDeleteHook = async ({ doc, req }) => {
+  await deleteUnreferencedMedia(req.payload, mediaReferencesFromDocument(doc))
+}
+
 export const Distributions: CollectionConfig = {
   slug: 'distributions',
   admin: {
@@ -26,13 +35,15 @@ export const Distributions: CollectionConfig = {
   },
   access: {
     admin: isPayloadAdminUser,
-    read: publicVisibleRead,
+    read: isPayloadAdminUser,
     create: canManageDistribution,
     update: canManageDistribution,
     delete: canManageDistribution,
   },
   hooks: {
     beforeChange: [({ data }) => ensureEvidenceUUIDs(data as Record<string, unknown> | undefined)],
+    afterChange: [cleanupDistributionMedia],
+    afterDelete: [cleanupDeletedDistributionMedia],
   },
   fields: [
     { name: 'resourceName', type: 'text', label: 'Recurso', required: true },

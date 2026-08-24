@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { canPublish, isPayloadAdminUser, publicStatusRead } from '../lib/access'
+import { canPublish, isPayloadAdminUser } from '../lib/access'
 
 export const Bulletins: CollectionConfig = {
   slug: 'bulletins',
@@ -12,7 +12,7 @@ export const Bulletins: CollectionConfig = {
   },
   access: {
     admin: isPayloadAdminUser,
-    read: publicStatusRead,
+    read: isPayloadAdminUser,
     create: canPublish,
     update: canPublish,
     delete: canPublish,

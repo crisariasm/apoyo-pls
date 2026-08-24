@@ -105,17 +105,13 @@ test('Payload y PostgreSQL aplican CRUD, roles, autoría, visibilidad y auditor�
     assert.ok(usersStillAvailable.totalDocs >= 2, 'Las entradas se parametrizan y no alteran el esquema SQL')
   })
 
-  await t.test('una lectura anónima nunca expone registros ocultos ni campos de auditoría', async () => {
-    const result = await payload.find({
+  await t.test('la API directa de Payload no expone datos anónimos', async () => {
+    await assert.rejects(payload.find({
       collection: 'resources',
       where: { name: { contains: marker } },
       pagination: false,
       overrideAccess: false,
-    })
-    assert.deepEqual(result.docs.map(({ id }) => String(id)), [visibleResourceId])
-    const publicDoc = result.docs[0] as unknown as Record<string, unknown>
-    assert.equal('registeredBy' in publicDoc, false)
-    assert.equal('registeredByUserId' in publicDoc, false)
+    }))
   })
 
   await t.test('la salida pública mapea únicamente el recurso visible', async () => {

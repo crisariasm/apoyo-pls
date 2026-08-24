@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { canManageInventory, isPayloadAdminUser, publicVisibleRead } from '../lib/access'
+import { canManageInventory, isPayloadAdminUser } from '../lib/access'
 import { resourceCategories } from '../lib/resource-categories'
 
 export const Resources: CollectionConfig = {
@@ -13,7 +13,7 @@ export const Resources: CollectionConfig = {
   },
   access: {
     admin: isPayloadAdminUser,
-    read: publicVisibleRead,
+    read: isPayloadAdminUser,
     create: canManageInventory,
     update: canManageInventory,
     delete: canManageInventory,

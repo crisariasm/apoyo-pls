@@ -1,5 +1,3 @@
-import type { Access, Where } from 'payload'
-
 export const roles = [
   'admin',
   'super-admin',
@@ -32,10 +30,3 @@ export const canManageServices = isPayloadAdminUser
 export const canManageNotices = isPayloadAdminUser
 export const canManageActivities = isPayloadAdminUser
 export const canPublish = isPayloadAdminUser
-
-export const publicVisibleRead: Access = ({ req }) => isPayloadAdminUser({ req }) ? true : { publicVisible: { equals: true } }
-const publishedPublicWhere: Where = { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }
-const openPublicWhere: Where = { and: [{ status: { in: ['abierta', 'entregado', 'en-ruta'] } }, { publicVisible: { equals: true } }] }
-
-export const publicStatusRead: Access = ({ req }) => isPayloadAdminUser({ req }) ? true : publishedPublicWhere
-export const publicOpenStatusRead: Access = ({ req }) => isPayloadAdminUser({ req }) ? true : openPublicWhere

@@ -25,7 +25,7 @@ function tooManyRequests(retryAfter: number) {
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) return NextResponse.json({ message: 'Origen de solicitud no permitido.' }, { status: 403, headers: noStore })
 
-  const session = await getStaffSession()
+  const session = await getStaffSession(request.headers)
   if (!session) return NextResponse.json({ message: 'Necesitas una sesión operativa para usar el asistente.' }, { status: 401, headers: noStore })
 
   // Por usuario para el uso normal y por dirección para que varias cuentas

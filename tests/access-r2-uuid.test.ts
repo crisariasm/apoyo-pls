@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { isPayloadAdminUser, publicOpenStatusRead, publicStatusRead, publicVisibleRead, roles } from '../lib/access'
+import { isPayloadAdminUser, roles } from '../lib/access'
 import { createR2Key, isR2Enabled } from '../lib/r2-storage'
 import { isUUID } from '../lib/uuid'
 
@@ -12,14 +12,6 @@ test('solo admin y super-admin tienen acceso administrativo de Payload', () => {
     assert.equal(isPayloadAdminUser({ req: { user: { role } } }), false, role)
   }
   assert.equal(isPayloadAdminUser({ req: { user: null } }), false)
-})
-
-test('las lecturas públicas aplican visibilidad y estado', () => {
-  const anonymous = { req: { user: null } }
-  assert.deepEqual(publicVisibleRead(anonymous as never), { publicVisible: { equals: true } })
-  assert.deepEqual(publicStatusRead(anonymous as never), { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] })
-  assert.deepEqual(publicOpenStatusRead(anonymous as never), { and: [{ status: { in: ['abierta', 'entregado', 'en-ruta'] } }, { publicVisible: { equals: true } }] })
-  assert.equal(publicStatusRead({ req: { user: { role: 'admin' } } } as never), true)
 })
 
 test('reconoce únicamente UUID válidos', () => {

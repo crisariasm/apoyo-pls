@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import { unstable_noStore as noStore } from 'next/cache'
 
 import config from '../payload.config'
+import { buildWhatsAppUrl } from './whatsapp'
 
 const hasDatabase = Boolean(process.env.DATABASE_URL)
 type PayloadLike = Record<string, unknown>
@@ -15,7 +16,7 @@ export type PublicDistribution = { id: string; resource: string; quantity: strin
 export type PublicEvidence = { id: string; image: string; title: string; description: string; source: string; distributionId: string }
 export type PublicActivity = { id: string; title: string; date: string; time: string; location: string; spots: string; featured: boolean }
 export type PublicNotice = { id: string; category: string; title: string; body: string; image: string; location: string; time: string; contact: string; featured: boolean }
-export type PublicService = { id: string; type: string; typeLabel: string; category: string; title: string; description: string; provider: string; location: string; price: string; featured: boolean }
+export type PublicService = { id: string; type: string; typeLabel: string; category: string; title: string; description: string; image: string; provider: string; location: string; price: string; whatsappUrl: string; featured: boolean }
 export type PublicBulletin = { id: string; category: string; title: string; summary: string; body: string; date: string; author: string; featured: boolean }
 
 export type PublicOverview = {
@@ -176,7 +177,7 @@ export async function getOverview(options: { sections?: readonly PublicOverviewS
       wants('evidences') ? safeFind({ collection: 'distribution-evidence', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-publishedAt', '-createdAt'] }) : Promise.resolve([]),
       wants('activities') ? safeFind({ collection: 'volunteer-activities', depth: 0, where: { and: [{ status: { equals: 'abierta' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', 'date', '-createdAt'] }) : Promise.resolve([]),
       wants('communityNotices') ? safeFind({ collection: 'community-notices', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }, { category: { not_equals: 'mascota-perdida' } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }) : Promise.resolve([]),
-      wants('services') ? safeFind({ collection: 'services', depth: 0, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-publishedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('services') ? safeFind({ collection: 'services', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-publishedAt', '-createdAt'] }) : Promise.resolve([]),
       wants('bulletins') ? safeFind({ collection: 'bulletins', depth: 0, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }) : Promise.resolve([]),
       safeFindGlobal(),
     ])
@@ -238,7 +239,7 @@ export async function getOverview(options: { sections?: readonly PublicOverviewS
       evidences,
       activities: activityDocs.map((activity) => ({ id: text(activity.id, crypto.randomUUID()), title: text(activity.title, 'Actividad del centro'), date: dateLabel(activity.date, 'Próximo'), time: `${text(activity.startTime, 'Hora por confirmar')} — ${text(activity.endTime, 'hora de cierre')}`, location: text(activity.location, 'Centro de acopio'), spots: `${Math.max(0, Number(activity.capacity || 0) - Number(activity.registered || 0))} cupos`, featured: activity.featured === true })),
       communityNotices: noticeDocs.map((notice) => ({ id: text(notice.id, crypto.randomUUID()), category: noticeCategoryLabel(notice.category), title: text(notice.title, 'Comunicado comunitario'), body: text(notice.body, 'Información compartida por la comunidad.'), image: mediaUrl(notice.image || notice.publicImagePath), location: text(notice.location, 'Zona general'), time: dateTimeLabel(notice.publishedAt, 'Publicado recientemente'), contact: text(notice.contact, 'Equipo de comunicaciones'), featured: notice.featured === true })),
-      services: serviceDocs.map((service) => ({ id: text(service.id, crypto.randomUUID()), type: text(service.type, 'gratuito'), typeLabel: serviceTypeLabel(service.type), category: text(service.category, 'General'), title: text(service.title, 'Servicio comunitario'), description: text(service.description, 'Información del servicio disponible.'), provider: text(service.provider, 'Comunidad'), location: text(service.location, 'Zona general'), price: text(service.price, 'Consultar'), featured: service.featured === true })),
+      services: serviceDocs.map((service) => ({ id: text(service.id, crypto.randomUUID()), type: text(service.type, 'gratuito'), typeLabel: serviceTypeLabel(service.type), category: text(service.category, 'General'), title: text(service.title, 'Servicio comunitario'), description: text(service.description, 'Información del servicio disponible.'), image: mediaUrl(service.image, '/hero-PLs-al-llamado.png'), provider: text(service.provider, 'Comunidad'), location: text(service.location, 'Zona general'), price: text(service.price, 'Consultar'), whatsappUrl: buildWhatsAppUrl(service.whatsappCountryCode, service.whatsappNumber, text(service.title, 'servicio comunitario')), featured: service.featured === true })),
       bulletins: bulletinDocs.map((bulletin) => ({ id: text(bulletin.id, crypto.randomUUID()), category: text(bulletin.category, 'Actualización'), title: text(bulletin.title, 'Boletín del centro'), summary: text(bulletin.summary, 'Actualización de la operación comunitaria.'), body: text(bulletin.body, 'Consulta los avances del centro de acopio.'), date: dateLabel(bulletin.publishedAt, 'Por confirmar'), author: text(bulletin.author, 'Equipo del centro'), featured: bulletin.featured === true })),
       metrics: { received: metricLabel(receivedTotal), available: metricLabel(availableTotal), distributed: metricLabel(distributedTotal), volunteers: metricLabel(activityDocs.length) },
       mode: 'live',

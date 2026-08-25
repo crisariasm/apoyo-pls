@@ -212,7 +212,7 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
     { role: 'que-necesitamos', module: 'necesitamos', data: { title: 'Necesidad de prueba', detail: 'Detalle para la prueba.', category: 'agua', quantity: 3, unit: 'cajas', priority: 'media', status: 'abierta', zone: 'Pereira', publicVisible: false }, patch: { priority: 'alta' } },
     { role: 'anuncios', module: 'anuncios', data: { title: 'Anuncio de prueba', body: 'Contenido de prueba.', type: 'oficial', status: 'borrador', publicVisible: false }, patch: { body: 'Contenido actualizado.' } },
     { role: 'boletin', module: 'boletin', data: { title: 'Boletín de prueba', summary: 'Resumen de prueba.', body: 'Contenido largo de prueba.', category: 'Operación', author: 'Equipo', status: 'borrador', publicVisible: false }, patch: { summary: 'Resumen actualizado.' } },
-    { role: 'servicios', module: 'servicios', data: { title: 'Servicio de prueba', description: 'Descripción de prueba.', type: 'gratuito', category: 'Transporte', provider: 'Comunidad', location: 'Pereira', status: 'borrador', publicVisible: false }, patch: { location: 'Dosquebradas' } },
+    { role: 'servicios', module: 'servicios', data: { title: 'Servicio de prueba', description: 'Descripción de prueba.', type: 'gratuito', category: 'Transporte', provider: 'Comunidad', location: 'Pereira', whatsappCountryCode: '+57', whatsappNumber: '300 123 4567', status: 'publicado', publicVisible: true }, patch: { location: 'Dosquebradas' } },
     { role: 'inventario', module: 'inventario', data: { name: 'Inventario de prueba', category: 'agua', quantity: 0, unit: 'cajas', status: 'agotado', publicVisible: false }, patch: { quantity: 1, status: 'limitado' } },
     { role: 'distribucion', module: 'distribucion', data: { resourceName: 'Distribución de prueba', quantity: 2, unit: 'cajas', date: new Date().toISOString(), destination: 'Pereira', organization: 'Equipo de prueba', status: 'pendiente', publicVisible: false }, patch: { status: 'en-ruta' } },
     { role: 'inventario', module: 'actividades', data: { title: 'Actividad de prueba', description: 'Jornada creada por la prueba E2E.', date: new Date().toISOString(), startTime: '08:00', endTime: '12:00', location: 'Centro de acopio', capacity: 6, registered: 0, status: 'abierta', featured: true, publicVisible: true }, patch: { registered: 1 } },
@@ -248,6 +248,19 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
         assert.match(await helpPage.text(), /Actividad de prueba/)
       }
 
+      if (scenario.module === 'servicios') {
+        const overviewResponse = await request('/api/public/overview')
+        assert.equal(overviewResponse.status, 200)
+        const overview = await json(overviewResponse)
+        const publicService = (overview.services as JsonRecord[]).find((service) => String(service.id) === id)
+        assert.ok(publicService, 'servicios: aparecer en el resumen público')
+        assert.match(String(publicService.whatsappUrl), /^https:\/\/wa\.me\/573001234567\?text=/)
+        assert.match(String(publicService.image), /hero-PLs-al-llamado\.png|\/api\/media\//)
+        const servicesPage = await request('/servicios')
+        assert.equal(servicesPage.status, 200)
+        assert.match(await servicesPage.text(), /Servicio de prueba/)
+      }
+
       const updateResponse = await request(`/api/equipo/${scenario.module}`, {
         method: 'PATCH', headers: sameOriginHeaders({ cookie: login.cookie, 'content-type': 'application/json', 'x-forwarded-for': `172.26.${crudCases.indexOf(scenario) + 1}.1` }),
         body: JSON.stringify({ id, ...scenario.patch }),
@@ -266,6 +279,17 @@ test('sitio público, API, autenticación y CRUD funcionan contra el servidor re
         assert.equal((overview.activities as JsonRecord[]).some((activity) => String(activity.id) === id), false, 'actividades: desaparecer del resumen público al eliminar')
       }
     }
+  })
+
+  await t.test('servicios rechaza un número de WhatsApp inválido', async () => {
+    const login = await loginTeam('servicios@plsalllamado.local', teamPassword, '172.28.3.1')
+    const response = await request('/api/equipo/servicios', {
+      method: 'POST',
+      headers: sameOriginHeaders({ cookie: login.cookie, 'content-type': 'application/json', 'x-forwarded-for': '172.29.3.1' }),
+      body: JSON.stringify({ title: 'WhatsApp inválido', description: 'No debe guardarse.', type: 'gratuito', category: 'Prueba', provider: 'Comunidad', location: 'Pereira', whatsappCountryCode: '+57', whatsappNumber: 'abc', status: 'borrador', publicVisible: false }),
+    })
+    assert.equal(response.status, 400)
+    assert.match(String((await json(response)).message), /WhatsApp válido/)
   })
 
   await t.test('comunicados y evidencias rechazan creación sin imagen', async () => {

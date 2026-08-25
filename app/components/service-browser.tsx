@@ -10,9 +10,11 @@ type Service = {
   category: string
   title: string
   description: string
+  image: string
   provider: string
   location: string
   price: string
+  whatsappUrl: string
   featured: boolean
 }
 
@@ -40,12 +42,18 @@ export function ServiceBrowser({ services }: { services: Service[] }) {
       </div>
       <div className={`service-grid${filteredServices.length > 6 ? ' is-scrollable' : ''}`}>
         {filteredServices.map((service) => <article className={`service-card${service.featured ? ' is-featured' : ''}`} key={service.id}>
+          <div className="service-card-image">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={service.image} alt={`Imagen de ${service.title}`} />
+          </div>
           <div className="service-card-top"><span className={`service-type service-type-${service.type}`}>{service.typeLabel || labels[service.type] || service.type}</span><span>{service.category}</span></div>
           {service.featured && <span className="featured-badge">Destacado</span>}
           <h2>{service.title}</h2>
           <p>{service.description}</p>
           <div className="service-card-meta"><span>{service.provider}</span><span>{service.location}</span><strong>{service.price}</strong></div>
-          <Link className="service-action" href={service.type === 'necesitado' ? '/ayudar#formulario-ayuda' : '/solicitar-apoyo#formulario-apoyo'}>{service.type === 'necesitado' ? 'Puedo ayudar' : 'Solicitar servicio'}</Link>
+          {service.type === 'necesitado' || !service.whatsappUrl
+            ? <Link className="service-action" href={service.type === 'necesitado' ? '/ayudar#formulario-ayuda' : '/solicitar-apoyo#formulario-apoyo'}>{service.type === 'necesitado' ? 'Puedo ayudar' : 'Solicitar servicio'}</Link>
+            : <a className="service-action service-action-whatsapp" href={service.whatsappUrl} target="_blank" rel="noreferrer noopener" aria-label={`Solicitar ${service.title} por WhatsApp`}>Solicitar servicio <span aria-hidden="true">↗</span></a>}
         </article>)}
         {!filteredServices.length && <div className="empty-state">No encontramos servicios con esos filtros.</div>}
       </div>

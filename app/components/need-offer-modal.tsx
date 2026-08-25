@@ -3,10 +3,7 @@
 import { FormEvent, useEffect, useId, useState } from 'react'
 
 import { validatePublicRequestForm, type PublicRequestFormErrors } from '../../lib/public-request-validation'
-
-function FieldError({ message }: { message?: string }) {
-  return message ? <span className="form-field-error">{message}</span> : null
-}
+import { FieldError } from './field-error'
 
 type NeedOfferModalProps = {
   title: string

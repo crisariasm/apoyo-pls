@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { PortalField, PortalModule } from '../../../../lib/staff-portal-config'
 import { getPortalFieldMaxLength, normalizePortalData, validatePortalData } from '../../../../lib/staff-portal-validation'
@@ -18,7 +18,7 @@ function emptyForm(module: PortalModule) {
     necesitamos: { priority: 'media', status: 'abierta', publishedAt: today },
     anuncios: { type: 'oficial', status: 'publicado', publishedAt: today },
     boletin: { category: 'Actualización', author: 'Equipo del centro', status: 'publicado', publishedAt: today },
-    servicios: { type: 'gratuito', status: 'publicado', publishedAt: today },
+    servicios: { type: 'gratuito', whatsappCountryCode: '+57', status: 'publicado', publishedAt: today },
     inventario: { status: 'disponible' },
     distribucion: { status: 'pendiente', date: today },
     actividades: { registered: 0, status: 'abierta', date: today },
@@ -408,11 +408,23 @@ export function StaffModulePanel({
 }
 
 function RecordFields({ module, form, onChange, onRemoveMedia }: { module: PortalModule; form: RecordData; onChange: (field: PortalField, value: unknown) => void; onRemoveMedia: (id: string) => void }) {
-  return <>{module.fields.map((field) => {
-    if (module.slug === 'evidencias' && field.name === 'distribution' && form.sourceType === 'otro') return null
-    if (module.slug === 'evidencias' && field.name === 'otherReference' && form.sourceType !== 'otro') return null
-    return <FieldControl field={field} value={form[field.name]} onChange={onChange} onRemoveMedia={onRemoveMedia} key={field.name} />
-  })}</>
+  const visibleFields = module.fields.filter((field) => {
+    if (module.slug === 'evidencias' && field.name === 'distribution' && form.sourceType === 'otro') return false
+    if (module.slug === 'evidencias' && field.name === 'otherReference' && form.sourceType !== 'otro') return false
+    return true
+  })
+  const controls: ReactNode[] = []
+  for (let index = 0; index < visibleFields.length; index += 1) {
+    const field = visibleFields[index]
+    if (field.group) {
+      const groupedFields = visibleFields.filter((candidate) => candidate.group === field.group)
+      controls.push(<div className="staff-field-row" key={`group-${field.group}`}>{groupedFields.map((groupedField) => <FieldControl field={groupedField} value={form[groupedField.name]} onChange={onChange} onRemoveMedia={onRemoveMedia} key={groupedField.name} />)}</div>)
+      index += groupedFields.length - 1
+      continue
+    }
+    controls.push(<FieldControl field={field} value={form[field.name]} onChange={onChange} onRemoveMedia={onRemoveMedia} key={field.name} />)
+  }
+  return <>{controls}</>
 }
 
 function Feedback({ error, message }: { error: string; message: string }) {

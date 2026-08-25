@@ -180,8 +180,8 @@ Todos los módulos (salvo Solicitudes) comparten la misma pantalla, dividida en 
 - Pide confirmación: «¿Quieres eliminar este registro?».
 - Al confirmar muestra **«Registro eliminado correctamente.»** y ajusta la página si esta queda vacía.
 
-**Imágenes** (en Evidencias y en Comunicados)
-- Botón **Seleccionar imagen**. Formatos PNG, JPG o WebP, máximo 10 MB.
+**Imágenes** (en Servicios, Evidencias y Comunicados)
+- Botón **Seleccionar imagen**. Se acepta cualquier imagen compatible con Sharp, máximo 10 MB; el servidor la convierte a WebP.
 - Con la imagen cargada se ve la vista previa y el botón **Eliminar imagen**.
 
 **En pantallas pequeñas** el formulario de creación viene plegado: se abre con el botón **Crear «nombre del módulo»** y se cierra con **Ocultar formulario**.
@@ -269,11 +269,14 @@ Valores por defecto: categoría «Actualización», equipo responsable «Equipo 
 |---|---|:--:|
 | Nombre del servicio | Texto | Sí |
 | Descripción | Texto largo | Sí |
+| Imagen del servicio | Imagen compatible, máximo 10 MB | No |
 | Tipo | Gratuito · Ofrecido por la comunidad · Se necesita | Sí |
 | Categoría | Texto | Sí |
 | Persona, equipo u organización | Texto | Sí |
 | Zona o modalidad | Texto | Sí |
 | Costo o condición | Texto | No |
+| Indicativo de WhatsApp | Lista de países, `+57` por defecto | Sí |
+| Número de WhatsApp | Texto, sin indicativo | Sí |
 | Estado | Borrador · Publicado · Archivado | Sí |
 | Visible públicamente | Casilla | No |
 | Fecha de publicación | Fecha | Sí para publicar |
@@ -404,7 +407,7 @@ Las páginas públicas se refrescan solas cada pocos segundos, así que muestran
 | `/distribucion` Seguimiento | Salidas registradas por destino general, con organización y estado, más las evidencias publicadas | Consultar y ver las imágenes de evidencia |
 | `/ayudar` Quiero ayudar | Actividades próximas con fecha, horario, lugar y cupos disponibles | Enviar el formulario **Cuéntanos cómo puedes ayudar** |
 | `/solicitar-apoyo` Solicitar apoyo | Explicación del proceso | Enviar el formulario **Cuéntanos qué hace falta** |
-| `/servicios` Servicios | Servicios gratuitos, ofrecidos por la comunidad y los que se necesitan | Buscar, filtrar por categoría y usar **Solicitar servicio** o, en los que se necesitan, **Puedo ayudar** |
+| `/servicios` Servicios | Servicios gratuitos, ofrecidos por la comunidad y los que se necesitan | Buscar, filtrar por categoría, ver imagen y usar **Solicitar servicio** por WhatsApp con el mensaje automático o, en los que se necesitan, **Puedo ayudar** |
 | `/comunicados` Comunicados | Avisos de la comunidad: mascotas encontradas, vivienda, objetos perdidos e información comunitaria | Leer cada aviso con su categoría, zona y canal de contacto, y compartirlo |
 | `/boletin` Boletín | Avances, registros y aprendizajes de la operación | Leer las entradas publicadas |
 
@@ -514,8 +517,12 @@ La clasificación se refleja en dos datos: la **Categoría** (a qué grupo perte
 2. Escribe el **Nombre del servicio** y su **Descripción**.
 3. Elige el **Tipo**: *Gratuito*, *Ofrecido por la comunidad* o *Se necesita*.
 4. Completa **Categoría**, **Persona, equipo u organización** y **Zona o modalidad**.
-5. Si aplica, indica **Costo o condición**.
-6. Deja el **Estado** en *Publicado* con su **Fecha de publicación** y pulsa **Crear registro**.
+5. Selecciona el **Indicativo de WhatsApp** —`+57` aparece por defecto— y escribe el **Número de WhatsApp** sin el indicativo. Ambos son obligatorios.
+6. Si quieres, pulsa **Seleccionar imagen** para cargar una imagen compatible de máximo 10 MB. La imagen es opcional, se convierte a WebP con Sharp y se guarda en R2.
+7. Si aplica, indica **Costo o condición**.
+8. Deja el **Estado** en *Publicado* con su **Fecha de publicación** y pulsa **Crear registro**.
+
+En `/servicios`, el botón **Solicitar servicio** abre WhatsApp con el número registrado y un mensaje automático. Si el servicio es del tipo *Se necesita*, conserva la acción **Puedo ayudar** para llevar a la oferta de ayuda.
 
 ### 9.13 ¿Cómo se registra un voluntario?
 1. La persona entra a `/ayudar` y envía el formulario eligiendo **Ofrecer tiempo o conocimientos**, con su nombre, teléfono, zona y detalle.

@@ -2,8 +2,8 @@ import { MigrateDownArgs, MigrateUpArgs, sql } from '@payloadcms/db-postgres'
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
-    ALTER TABLE "volunteer_activities" ADD COLUMN "featured" boolean DEFAULT false;
-    CREATE INDEX "volunteer_activities_featured_idx" ON "volunteer_activities" USING btree ("featured");
+    ALTER TABLE "volunteer_activities" ADD COLUMN IF NOT EXISTS "featured" boolean DEFAULT false;
+    CREATE INDEX IF NOT EXISTS "volunteer_activities_featured_idx" ON "volunteer_activities" USING btree ("featured");
   `)
 }
 

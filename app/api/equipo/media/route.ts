@@ -18,9 +18,10 @@ const MEDIA_WRITE_RATE_LIMIT = 20
 const MEDIA_WRITE_RATE_WINDOW_MS = 15 * 60 * 1000
 
 function canUploadForContext(role: string, context: string) {
-  if (role === 'administracion') return context === 'comunicados' || context === 'evidencias'
+  if (role === 'administracion') return context === 'comunicados' || context === 'evidencias' || context === 'servicios'
   if (context === 'comunicados') return role === 'comunicados'
   if (context === 'evidencias') return role !== 'admin' && role !== 'super-admin'
+  if (context === 'servicios') return role === 'servicios'
   return false
 }
 

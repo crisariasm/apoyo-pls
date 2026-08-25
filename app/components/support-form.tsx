@@ -3,10 +3,7 @@
 import { FormEvent, useState } from 'react'
 
 import { supportQuantityUnits, validatePublicRequestForm, type PublicRequestFormErrors } from '../../lib/public-request-validation'
-
-function FieldError({ message }: { message?: string }) {
-  return message ? <span className="form-field-error">{message}</span> : null
-}
+import { FieldError } from './field-error'
 
 export function SupportForm() {
   const [state, setState] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')

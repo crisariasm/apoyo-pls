@@ -130,6 +130,76 @@ test('las actividades permiten marcar una actividad como destacada', () => {
   assert.equal(featured?.index, true)
 })
 
+test('los servicios permiten imagen, WhatsApp y limpian medios reemplazados', async () => {
+  const fields = namedFields(Services.fields)
+  const image = fields.get('image') as { type?: string; relationTo?: string } | undefined
+  const countryCode = fields.get('whatsappCountryCode') as { defaultValue?: string; required?: boolean; options?: Array<{ value: string }> } | undefined
+  const phone = fields.get('whatsappNumber') as { required?: boolean; maxLength?: number } | undefined
+
+  assert.equal(image?.type, 'upload')
+  assert.equal(image?.relationTo, 'media')
+  assert.equal(countryCode?.defaultValue, '+57')
+  assert.equal(countryCode?.required, true)
+  assert.ok((countryCode?.options?.length || 0) >= 5)
+  assert.ok(countryCode?.options?.some((option) => option.value === '+57'))
+  assert.equal(phone?.required, true)
+  assert.equal(phone?.maxLength, 20)
+  assert.equal(typeof Services.hooks?.afterChange?.[0], 'function')
+  assert.equal(typeof Services.hooks?.afterDelete?.[0], 'function')
+
+  const validate = hook(Services, 'beforeValidate')
+  const base = { title: 'Transporte', description: 'Apoyo comunitario', type: 'gratuito', category: 'Movilidad', provider: 'Comunidad', location: 'Pereira' }
+  expectValidation(() => validate({ data: base, operation: 'create', req: { context: {} } } as never), 'whatsappNumber', /obligatorio/i)
+  expectValidation(() => validate({ data: { ...base, whatsappCountryCode: '+57', whatsappNumber: 'abc' }, operation: 'create', req: { context: {} } } as never), 'whatsappNumber', /WhatsApp válido/i)
+  assert.doesNotThrow(() => validate({ data: { ...base, whatsappCountryCode: '+57', whatsappNumber: '300 123 4567' }, operation: 'create', req: { context: {} } } as never))
+
+  const mediaId = randomUUID()
+  const deleted: string[] = []
+  const cleanup = Services.hooks?.afterChange?.[0]
+  await cleanup?.({
+    operation: 'update',
+    previousDoc: { image: mediaId },
+    req: {
+      payload: {
+        find: async () => ({ totalDocs: 0 }),
+        delete: async ({ id }: { id: typeof mediaId }) => { deleted.push(id); return {} },
+        logger: { error: () => undefined },
+      },
+    },
+  } as never)
+  assert.deepEqual(deleted, [mediaId])
+
+  const deleteCleanup = Services.hooks?.afterDelete?.[0]
+  await deleteCleanup?.({
+    doc: { image: mediaId },
+    req: {
+      payload: {
+        find: async () => ({ totalDocs: 0 }),
+        delete: async ({ id }: { id: typeof mediaId }) => { deleted.push(id); return {} },
+        logger: { error: () => undefined },
+      },
+    },
+  } as never)
+  assert.deepEqual(deleted, [mediaId, mediaId])
+})
+
+test('las colecciones con imágenes limpian referencias huérfanas en cambios y eliminaciones', async () => {
+  const mediaId = randomUUID()
+  const deleted: string[] = []
+  const payload = {
+    find: async () => ({ totalDocs: 0 }),
+    delete: async ({ id }: { id: string }) => { deleted.push(id); return {} },
+    logger: { error: () => undefined },
+  }
+
+  for (const collection of [CommunityNotices, DistributionEvidence, Distributions, Services]) {
+    await collection.hooks?.afterChange?.[0]?.({ operation: 'update', previousDoc: { image: mediaId }, req: { payload } } as never)
+    await collection.hooks?.afterDelete?.[0]?.({ doc: { image: mediaId }, req: { payload } } as never)
+  }
+
+  assert.equal(deleted.length, 8)
+})
+
 test('la auditoría automática limita texto y conserva creador/editor', () => {
   const audited = withAuditFields(Resources)
   const fields = namedFields(audited.fields)

@@ -388,6 +388,7 @@
 .staff-outline-button:hover { background: #eef5ed; }
 
 .staff-record-form { display: grid; gap: 13px; }
+.staff-field-row { display: grid; grid-template-columns: minmax(120px, .7fr) minmax(0, 1.3fr); gap: 10px; }
 .staff-field { display: grid; gap: 6px; }
 .staff-field > span,
 .staff-checkbox-field span { color: #526b62; font-size: 11px; font-weight: 750; }
@@ -552,6 +553,7 @@
 }
 
 @media (max-width: 720px) {
+  .staff-field-row { grid-template-columns: 1fr; }
   .staff-sidebar { width: min(310px, 86vw); transform: translateX(-105%); box-shadow: 18px 0 60px rgba(10, 40, 25, .18); }
   .staff-sidebar.is-open { transform: translateX(0); }
   .staff-sidebar.is-collapsed { width: min(310px, 86vw); }

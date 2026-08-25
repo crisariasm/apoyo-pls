@@ -10,13 +10,30 @@ loadTestEnv()
 
 type StoredDoc = { collection: string; id: string }
 type TestUser = Record<string, unknown> & { id: string; email: string; name: string; role: string }
-type PostgreSQLPool = { end?: () => Promise<void> }
+type PostgreSQLPoolClient = { release?: () => void }
+type PostgreSQLPool = {
+  _clients?: PostgreSQLPoolClient[]
+  _idle?: Array<{ client?: PostgreSQLPoolClient }>
+  end?: () => Promise<void>
+}
 
 let payload: Payload
 let admin: TestUser
 let inventoryUser: TestUser
 const createdDocs: StoredDoc[] = []
 const marker = `Prueba automatizada ${randomUUID()}`
+
+async function closePostgreSQLPool(pool: PostgreSQLPool | undefined) {
+  if (!pool?.end) return
+
+  // Payload mantiene una conexión de verificación adquirida durante el arranque.
+  // Se libera aquí para que pg-pool pueda terminar sin dejar el runner bloqueado.
+  const idleClients = new Set((pool._idle || []).map(({ client }) => client))
+  for (const client of pool._clients || []) {
+    if (!idleClients.has(client)) client.release?.()
+  }
+  await pool.end()
+}
 
 async function removeCreatedDocs() {
   for (const item of [...createdDocs].reverse()) {
@@ -64,7 +81,7 @@ after(async () => {
     await removeCreatedDocs()
   } finally {
     await payload.destroy()
-    await pool?.end?.()
+    await closePostgreSQLPool(pool)
   }
 })
 

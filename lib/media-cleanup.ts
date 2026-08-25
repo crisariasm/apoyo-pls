@@ -22,12 +22,13 @@ export function mediaReferencesFromDocument(value: unknown) {
 }
 
 export async function isMediaReferenced(payload: Payload, id: string) {
-  const [noticeResult, evidenceResult, distributionResult] = await Promise.all([
+  const [noticeResult, evidenceResult, distributionResult, serviceResult] = await Promise.all([
     payload.find({ collection: 'community-notices', where: { image: { equals: id } }, depth: 0, limit: 1, overrideAccess: true }),
     payload.find({ collection: 'distribution-evidence', where: { image: { equals: id } }, depth: 0, limit: 1, overrideAccess: true }),
     payload.find({ collection: 'distributions', where: { 'evidence.image': { equals: id } } as never, depth: 0, limit: 1, overrideAccess: true }),
+    payload.find({ collection: 'services', where: { image: { equals: id } }, depth: 0, limit: 1, overrideAccess: true }),
   ])
-  return noticeResult.totalDocs > 0 || evidenceResult.totalDocs > 0 || distributionResult.totalDocs > 0
+  return noticeResult.totalDocs > 0 || evidenceResult.totalDocs > 0 || distributionResult.totalDocs > 0 || serviceResult.totalDocs > 0
 }
 
 export async function deleteUnreferencedMedia(payload: Payload, references: unknown[]) {

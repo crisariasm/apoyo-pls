@@ -381,7 +381,7 @@ Directorio de capacidades de la comunidad:
 - Servicios ofrecidos por la comunidad.
 - Servicios que todavía se necesitan.
 
-Incluye búsqueda por texto y filtro por categoría. Cada tarjeta muestra proveedor, zona o modalidad, costo o condición y un botón que lleva al formulario correspondiente.
+Incluye búsqueda por texto y filtro por categoría. Cada tarjeta muestra la imagen opcional del servicio, proveedor, zona o modalidad y costo o condición. Cuando el registro tiene WhatsApp válido, **Solicitar servicio** abre directamente un chat con el número configurado y un mensaje automático; los servicios sin contacto usan el formulario público correspondiente.
 
 ### `/boletin`
 
@@ -458,7 +458,7 @@ El rol de administración puede consultar todos los módulos. Cada rol operativo
 | `/equipo/necesitamos` | Qué necesitamos | `needs` | Publica necesidades, categorías, prioridades, cantidades y zonas |
 | `/equipo/anuncios` | Anuncios del centro | `announcements` | Publica horarios, necesidades, rutas, información oficial e impacto |
 | `/equipo/boletin` | Boletín informativo | `bulletins` | Redacta resúmenes, contenido completo, categorías y estado |
-| `/equipo/servicios` | Servicios | `services` | Registra servicios gratuitos, ofrecidos o necesarios |
+| `/equipo/servicios` | Servicios | `services` | Registra servicios gratuitos, ofrecidos o necesarios, con imagen opcional y WhatsApp obligatorio |
 | `/equipo/inventario` | Inventario | `resources` | Actualiza recursos disponibles, cantidad, unidad y estado |
 | `/equipo/distribucion` | Distribución | `distributions` | Registra salidas, destinos, equipos responsables y estado |
 | `/equipo/evidencias` | Evidencias | `distribution-evidence` | Sube imágenes y descripciones de distribuciones u otros registros |
@@ -475,6 +475,7 @@ El rol de administración puede consultar todos los módulos. Cada rol operativo
 - Los selectores muestran un placeholder no seleccionable.
 - Las evidencias exigen distribución cuando el origen es “Salida de distribución”.
 - Las evidencias exigen una referencia cuando el origen es “Otro registro operativo”.
+- En Servicios, el indicativo y el número de WhatsApp son obligatorios; la imagen es opcional.
 - En edición de imágenes no se reemplaza directamente el archivo: primero se elimina el anterior y luego se carga uno nuevo.
 - Los registros de cada módulo son visibles para todo el equipo autorizado en ese módulo. Así pueden revisar lo que ya existe antes de crear otro registro.
 - Cada registro conserva `Registrado por` como su creador original. Si otra persona lo modifica, `Actualizado por` muestra al último responsable sin reemplazar al creador.
@@ -707,7 +708,7 @@ Todas las colecciones pasan por [withAuditFields](./lib/audit-fields.ts), que a�
 | `announcements` | Anuncios del centro | Título, contenido, tipo, estado, destacado, visibilidad, fecha de publicación y vencimiento |
 | `bulletins` | Boletines | Título, resumen, contenido completo, categoría, autor, estado, destacado, visibilidad y fecha |
 | `community-notices` | Comunicados | Título, descripción, categoría, imagen, zona, contacto, estado, destacado, visibilidad y fecha |
-| `services` | Servicios | Título, descripción, tipo, categoría, proveedor, zona o modalidad, costo, estado, visibilidad y fecha |
+| `services` | Servicios | Título, descripción, imagen opcional, tipo, categoría, proveedor, zona o modalidad, costo, indicativo y número de WhatsApp obligatorios, estado, visibilidad y fecha |
 
 ### Colecciones técnicas
 
@@ -770,6 +771,15 @@ Los nombres de familias, menores, documentos, teléfonos sensibles y ubicaciones
 5. Al publicar y marcar visible, aparece en `/comunicados`.
 6. La comunidad puede compartir el enlace de la tarjeta.
 
+### Publicar un servicio
+
+1. El rol Servicios abre `/equipo/servicios`.
+2. Completa nombre, descripción, tipo, categoría, persona/equipo u organización y zona o modalidad.
+3. Selecciona el indicativo de WhatsApp —`+57` aparece por defecto— y escribe el número sin el indicativo. Ambos campos son obligatorios.
+4. Si quieres, carga una imagen compatible de hasta 10 MB. El mismo componente reutilizado de medios la convierte a WebP con Sharp y la guarda en R2.
+5. Indica costo o condición, estado, visibilidad y fecha de publicación.
+6. En `/servicios`, **Solicitar servicio** abre WhatsApp con el mensaje automático. Si se edita la imagen, el medio anterior se elimina de R2; al borrar el servicio también se elimina su imagen si ya no tiene otras referencias.
+
 ## Actualización automática
 
 La aplicación no depende de una recarga manual para reflejar cambios:
@@ -785,7 +795,7 @@ La implementación actual utiliza polling controlado, no WebSockets. En el porta
 
 ### Rendimiento y consultas
 
-- Las lecturas públicas usan `depth: 0` cuando no necesitan relaciones y `depth: 1` solo para distribuciones, evidencias y comunicados con imágenes.
+- Las lecturas públicas usan `depth: 0` cuando no necesitan relaciones y `depth: 1` solo para distribuciones, evidencias, comunicados y servicios con imágenes.
 - Los listados públicos conservan un límite de seguridad de 100 registros; la interfaz los muestra dentro de contenedores desplazables para evitar páginas interminables.
 - El dashboard usa consultas acotadas (`limit: 1`) y `totalDocs` para contar, en vez de cargar todos los documentos y filtrarlos en JavaScript.
 - Las consultas de publicación y estado tienen índices incluidos en la migración inicial `migrations/20260821_182428_baseline.ts`.
@@ -809,7 +819,7 @@ Todos los endpoints de lectura consultan únicamente información visible y publ
 | GET | `/api/public/announcements` | Anuncios publicados |
 | GET | `/api/public/distributions` | Distribuciones visibles |
 | GET | `/api/public/community-notices` | Comunicados publicados |
-| GET | `/api/public/services` | Servicios publicados |
+| GET | `/api/public/services` | Servicios publicados, con imagen pública y `whatsappUrl` cuando el contacto es válido |
 | GET | `/api/public/bulletins` | Boletines publicados |
 | POST | `/api/public/support-request` | Crea una solicitud pública |
 | GET | `/api/health` | Estado del servicio y si `DATABASE_URL` está configurada |
@@ -868,13 +878,14 @@ Al eliminar una imagen desde el portal:
 - Se elimina el objeto correspondiente de R2.
 - Si una operación falla, el backend intenta limpiar el objeto temporal creado.
 
-Al eliminar o reemplazar un comunicado, una evidencia o una distribución, el backend revisa las referencias restantes antes de eliminar su media. Una imagen que todavía usa otro registro se conserva; una imagen sin referencias se elimina junto con su objeto de R2. Esto también cubre las evidencias legadas embebidas en las distribuciones.
+Al eliminar o reemplazar un comunicado, una evidencia, una distribución o un servicio, el backend revisa las referencias restantes antes de eliminar su media. Una imagen que todavía usa otro registro se conserva; una imagen sin referencias se elimina junto con su objeto de R2. Esto también cubre las evidencias legadas embebidas en las distribuciones.
 
 No se necesita una URL pública del bucket. El backend descarga los objetos de R2 y los sirve mediante una ruta propia con caché inmutable.
 
 ### Permisos de medios
 
 - Comunicados: el rol Comunicados y Administración.
+- Servicios: el rol Servicios y Administración.
 - Evidencias: los roles operativos autorizados.
 - Los roles técnicos de Payload no usan el login del equipo.
 - Un usuario operativo no puede eliminar la imagen cargada por otra persona, excepto Administración.

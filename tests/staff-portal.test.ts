@@ -77,6 +77,16 @@ test('valida reglas cruzadas de necesidades, evidencias y publicaciones', () => 
   assert.match(validatePortalData(bulletin, { status: 'publicado' }, { partial: true }) || '', /Fecha de publicación/)
 })
 
+test('valida el WhatsApp de un servicio antes de enviarlo al servidor', () => {
+  const services = getPortalModule('servicios')!
+  assert.equal(validatePortalData(services, { whatsappCountryCode: '+57', whatsappNumber: '300 123 4567' }, { partial: true }), null)
+  assert.match(validatePortalData(services, {
+    title: 'Servicio', description: 'Descripción', type: 'gratuito', category: 'Apoyo', provider: 'Comunidad', location: 'Pereira',
+    status: 'borrador', publicVisible: false, whatsappCountryCode: '+57',
+  }) || '', /Completa: Número de WhatsApp/)
+  assert.match(validatePortalData(services, { whatsappCountryCode: '+57', whatsappNumber: 'abc' }, { partial: true }) || '', /WhatsApp válido/)
+})
+
 test('los límites de campo usados por frontend y backend son deterministas', () => {
   const inventory = getPortalModule('inventario')!
   assert.equal(getPortalFieldMaxLength(inventory.fields.find(({ name }) => name === 'name')!), 160)

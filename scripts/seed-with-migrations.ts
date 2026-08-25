@@ -360,6 +360,8 @@ const services = seedServices.map((service, index) => ({
   provider: service.provider,
   location: service.location,
   price: service.price,
+  whatsappCountryCode: '+57',
+  whatsappNumber: `300 555 ${String(1000 + index).slice(-4)}`,
   status: 'publicado',
   publicVisible: true,
   featured: index < 3,

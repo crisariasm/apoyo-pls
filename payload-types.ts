@@ -539,11 +539,18 @@ export interface Service {
   id: string;
   title: string;
   description: string;
+  image?: (string | null) | Media;
   type: 'gratuito' | 'ofrecido' | 'necesitado';
   category: string;
   provider: string;
   location: string;
   price?: string | null;
+  whatsappCountryCode:
+    '+57' | '+1' | '+52' | '+51' | '+54' | '+56' | '+593' | '+58' | '+34' | '+44' | '+49' | '+33' | '+39' | '+61';
+  /**
+   * Escríbelo sin el indicativo, por ejemplo: 300 123 4567.
+   */
+  whatsappNumber: string;
   status: 'borrador' | 'publicado' | 'archivado';
   publicVisible?: boolean | null;
   publishedAt?: string | null;
@@ -1030,11 +1037,14 @@ export interface CommunityNoticesSelect<T extends boolean = true> {
 export interface ServicesSelect<T extends boolean = true> {
   title?: T;
   description?: T;
+  image?: T;
   type?: T;
   category?: T;
   provider?: T;
   location?: T;
   price?: T;
+  whatsappCountryCode?: T;
+  whatsappNumber?: T;
   status?: T;
   publicVisible?: T;
   publishedAt?: T;

@@ -1,5 +1,6 @@
 import type { PortalModule, PortalField } from './staff-portal-config'
 import { isUUID } from './uuid'
+import { isValidWhatsAppNumber } from './whatsapp'
 
 type FormData = Record<string, unknown>
 
@@ -81,6 +82,10 @@ export function validatePortalData(module: PortalModule, data: FormData, options
   if (module.slug === 'evidencias') {
     if (data.sourceType === 'distribucion' && isBlank(data.distribution)) errors.push('Selecciona la salida de distribución o elige Otro registro operativo.')
     if (data.sourceType === 'otro' && isBlank(data.otherReference)) errors.push('Completa la referencia del otro registro operativo.')
+  }
+
+  if (module.slug === 'servicios' && !isBlank(data.whatsappNumber) && !isValidWhatsAppNumber(data.whatsappCountryCode, data.whatsappNumber)) {
+    errors.push('Escribe un número de WhatsApp válido junto con su indicativo.')
   }
 
   const publishedModules = ['anuncios', 'boletin', 'servicios', 'comunicados']

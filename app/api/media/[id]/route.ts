@@ -24,7 +24,7 @@ function canViewDraftMedia(user: unknown) {
 
 async function isPublishedMedia(payload: Awaited<ReturnType<typeof getPayload>>, mediaId: string) {
   try {
-    const [noticeResult, evidenceResult] = await Promise.all([
+    const [noticeResult, evidenceResult, serviceResult] = await Promise.all([
       payload.find({
         collection: 'community-notices',
         where: { and: [{ image: { equals: mediaId } }, { status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] },
@@ -39,8 +39,15 @@ async function isPublishedMedia(payload: Awaited<ReturnType<typeof getPayload>>,
         limit: 1,
         overrideAccess: true,
       }),
+      payload.find({
+        collection: 'services',
+        where: { and: [{ image: { equals: mediaId } }, { status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] },
+        depth: 0,
+        limit: 1,
+        overrideAccess: true,
+      }),
     ])
-    return noticeResult.totalDocs > 0 || evidenceResult.totalDocs > 0
+    return noticeResult.totalDocs > 0 || evidenceResult.totalDocs > 0 || serviceResult.totalDocs > 0
   } catch {
     return false
   }

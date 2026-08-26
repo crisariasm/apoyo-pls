@@ -20,6 +20,14 @@ const sensitiveKeys = new Set([
   'uploadedbyname',
 ])
 
+const nestedSensitiveKeys = new Set([
+  ...sensitiveKeys,
+  'registeredby',
+  'registeredbyuserid',
+  'updatedby',
+  'updatedbyuserid',
+])
+
 function normalizedKey(key: string) {
   return key.toLowerCase().replaceAll('_', '').replaceAll('-', '')
 }
@@ -40,7 +48,7 @@ function sanitizeNested(value: unknown, depth = 0): unknown {
 
   const result: Record<string, unknown> = {}
   for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-    if (isSensitiveKey(key)) continue
+    if (nestedSensitiveKeys.has(normalizedKey(key)) || isSensitiveKey(key)) continue
     const sanitized = sanitizeNested(item, depth + 1)
     if (sanitized !== undefined) result[key] = sanitized
   }

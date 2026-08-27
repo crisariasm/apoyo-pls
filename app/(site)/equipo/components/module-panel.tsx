@@ -18,7 +18,7 @@ function emptyForm(module: PortalModule) {
     necesitamos: { priority: 'media', status: 'abierta', publishedAt: today },
     anuncios: { type: 'oficial', status: 'publicado', publishedAt: today },
     boletin: { category: 'Actualización', author: 'Equipo del centro', status: 'publicado', publishedAt: today },
-    servicios: { type: 'gratuito', whatsappCountryCode: '+57', status: 'publicado', publishedAt: today },
+    servicios: { type: 'gratuito', city: 'Pereira', serviceMode: 'presencial', pricingType: 'gratis', whatsappCountryCode: '+57', status: 'publicado', publishedAt: today },
     inventario: { status: 'disponible' },
     distribucion: { status: 'pendiente', date: today },
     actividades: { registered: 0, status: 'abierta', date: today },
@@ -67,6 +67,8 @@ const valueLabels: Record<string, Record<string, string>> = {
     'en-revision': 'En revisión', asignada: 'Asignada', atendida: 'Atendida',
   },
   priority: { critica: 'Crítica', crítica: 'Crítica', alta: 'Alta', media: 'Media' },
+  serviceMode: { presencial: 'Presencial', domicilio: 'A domicilio', remoto: 'Remoto', hibrido: 'Híbrido' },
+  pricingType: { gratis: 'Gratis', pagado: 'De pago', negociable: 'Tarifa negociable', intercambio: 'Intercambio o aporte', 'por-definir': 'Por definir' },
 }
 
 function displayFieldValue(field: string, value: unknown) {

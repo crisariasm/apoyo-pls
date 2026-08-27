@@ -15,6 +15,7 @@ export const dashboardRoleValues = portalRoleValues
 export type DashboardRole = PortalRole
 export type PortalModuleSlug = (typeof portalModuleSlugs)[number]
 import { resourceCategories } from './resource-categories'
+import { serviceModes, servicePricingTypes } from './service-options'
 import { whatsappCountryCodes } from './whatsapp'
 
 export type PortalFieldType = 'text' | 'textarea' | 'number' | 'date' | 'checkbox' | 'select' | 'upload'
@@ -198,11 +199,11 @@ export const portalModules: PortalModule[] = [
   {
     slug: 'servicios',
     label: 'Servicios',
-    description: 'Administra servicios gratuitos, ofrecidos por la comunidad o solicitados.',
+    description: 'Administra servicios gratuitos y oportunidades de trabajo de la comunidad.',
     collection: 'services',
     roles: ['servicios'],
     titleField: 'title',
-    summaryFields: ['type', 'category', 'status', 'location'],
+    summaryFields: ['type', 'category', 'city', 'pricingType', 'status'],
     fields: [
       { name: 'title', label: 'Nombre del servicio', type: 'text', required: true },
       { name: 'description', label: 'Descripción', type: 'textarea', required: true },
@@ -210,12 +211,17 @@ export const portalModules: PortalModule[] = [
       { name: 'type', label: 'Tipo', type: 'select', required: true, options: [
         { label: 'Gratuito', value: 'gratuito' },
         { label: 'Ofrecido por la comunidad', value: 'ofrecido' },
-        { label: 'Se necesita', value: 'necesitado' },
+        { label: 'Solicitud de apoyo', value: 'necesitado' },
       ] },
       { name: 'category', label: 'Categoría', type: 'text', required: true },
       { name: 'provider', label: 'Persona, equipo u organización', type: 'text', required: true },
-      { name: 'location', label: 'Zona o modalidad', type: 'text', required: true },
-      { name: 'price', label: 'Costo o condición', type: 'text' },
+      { name: 'city', label: 'Ciudad o cobertura', type: 'text', maxLength: 100, placeholder: 'Ej.: Pereira, Cali o Remoto / toda Colombia', description: 'Escribe dónde se presta el servicio. Así se podrá encontrar por ciudad.' },
+      { name: 'serviceMode', label: 'Modalidad', type: 'select', options: serviceModes.map((option) => ({ ...option })) },
+      { name: 'location', label: 'Barrio, zona o cobertura', type: 'text', required: true, placeholder: 'Ej.: Cuba, sector centro o todo Pereira' },
+      { name: 'availability', label: 'Disponibilidad', type: 'text', maxLength: 160, placeholder: 'Ej.: Con cita previa, lunes a viernes' },
+      { name: 'pricingType', label: 'Tipo de tarifa', type: 'select', options: servicePricingTypes.map((option) => ({ ...option })), description: 'Haz explícito si es gratis, de pago o negociable.' },
+      { name: 'price', label: 'Costo o condición', type: 'text', maxLength: 160, placeholder: 'Ej.: $40.000 por hora o a convenir' },
+      { name: 'featured', label: 'Destacado', type: 'checkbox', description: 'Lo muestra primero en el directorio.' },
       { name: 'whatsappCountryCode', label: 'Indicativo', type: 'select', required: true, group: 'whatsapp', options: whatsappCountryCodes.map((option) => ({ ...option })), description: 'Selecciona el país del número.' },
       { name: 'whatsappNumber', label: 'Número de WhatsApp', type: 'text', required: true, group: 'whatsapp', maxLength: 20, placeholder: '300 123 4567', description: 'Escríbelo sin el indicativo.' },
       { name: 'status', label: 'Estado', type: 'select', required: true, options: [

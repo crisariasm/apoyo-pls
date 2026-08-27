@@ -151,16 +151,16 @@ export const seedCommunityNotices = [
 ]
 
 export const seedServices = [
-  { id: seedId(), type: 'gratuito', category: 'Orientación', title: 'Orientación para organizar donaciones', description: 'Acompañamiento para separar, rotular y entregar recursos de forma segura.', provider: 'Equipo PLs al llamado', location: 'Centro de acopio', price: 'Sin costo' },
-  { id: seedId(), type: 'ofrecido', category: 'Transporte', title: 'Transporte solidario para recorridos cortos', description: 'Personas de la comunidad ofrecen vehículo y tiempo para mover ayudas dentro de Pereira.', provider: 'Red de conductores comunitarios', location: 'Pereira', price: 'A convenir' },
-  { id: seedId(), type: 'necesitado', category: 'Veterinaria', title: 'Se necesita valoración veterinaria', description: 'Apoyo profesional para revisar animales encontrados o que acompañan los recorridos.', provider: 'Solicitud de la comunidad', location: 'Pereira y alrededores', price: 'Se necesita' },
-  { id: seedId(), type: 'gratuito', category: 'Clasificación', title: 'Taller abierto de clasificación', description: 'Espacio práctico para aprender a separar alimentos, aseo, abrigo y elementos para mascotas.', provider: 'Voluntariado PLs', location: 'Centro de acopio', price: 'Sin costo' },
-  { id: seedId(), type: 'ofrecido', category: 'Comunicación', title: 'Diseño de piezas para la comunidad', description: 'Apoyo para crear avisos claros sobre necesidades, rutas y comunicados.', provider: 'Diseñadora voluntaria', location: 'Remoto', price: 'A convenir' },
-  { id: seedId(), type: 'necesitado', category: 'Almacenamiento', title: 'Se requiere espacio temporal', description: 'Lugar seco y seguro para guardar cajas plásticas y ayudas clasificadas.', provider: 'Centro de acopio', location: 'Pereira', price: 'Se necesita' },
-  { id: seedId(), type: 'gratuito', category: 'Primeros auxilios', title: 'Orientación básica de primeros auxilios', description: 'Espacio comunitario para resolver dudas y revisar botiquines antes de una ruta.', provider: 'Brigada de salud aliada', location: 'Centro de acopio', price: 'Sin costo' },
-  { id: seedId(), type: 'ofrecido', category: 'Reparaciones', title: 'Reparación de linternas y radios', description: 'Revisión básica de elementos útiles para las rutas en zonas rurales.', provider: 'Taller comunitario', location: 'Pereira', price: 'A convenir' },
-  { id: seedId(), type: 'necesitado', category: 'Traducción', title: 'Se necesita apoyo para traducir avisos', description: 'Personas que puedan ayudar a adaptar comunicados para distintas comunidades.', provider: 'Equipo de comunicaciones', location: 'Remoto', price: 'Se necesita' },
-  { id: seedId(), type: 'gratuito', category: 'Mascotas', title: 'Guía de cuidado para animales', description: 'Orientación para preparar alimento, agua y elementos de cuidado durante una emergencia.', provider: 'Red animalista comunitaria', location: 'Remoto', price: 'Sin costo' },
+  { id: seedId(), type: 'gratuito', category: 'Orientación', title: 'Orientación para organizar donaciones', description: 'Acompañamiento para separar, rotular y entregar recursos de forma segura.', provider: 'Equipo PLs al llamado', city: 'Pereira', serviceMode: 'presencial', location: 'Centro de acopio', availability: 'Martes y jueves · 2:00 a 5:00 p. m.', pricingType: 'gratis', price: 'Sin costo' },
+  { id: seedId(), type: 'ofrecido', category: 'Transporte', title: 'Transporte solidario para recorridos cortos', description: 'Personas de la comunidad ofrecen vehículo y tiempo para mover ayudas dentro de Pereira.', provider: 'Red de conductores comunitarios', city: 'Pereira', serviceMode: 'domicilio', location: 'Pereira y alrededores', availability: 'Con coordinación previa', pricingType: 'negociable', price: 'A convenir' },
+  { id: seedId(), type: 'ofrecido', category: 'Veterinaria', title: 'Valoración veterinaria para animales', description: 'Revisión profesional para animales encontrados o que acompañan los recorridos comunitarios.', provider: 'Red veterinaria aliada', city: 'Pereira', serviceMode: 'presencial', location: 'Pereira y alrededores', availability: 'Con cita previa', pricingType: 'pagado', price: 'Desde $35.000' },
+  { id: seedId(), type: 'gratuito', category: 'Clasificación', title: 'Taller abierto de clasificación', description: 'Espacio práctico para aprender a separar alimentos, aseo, abrigo y elementos para mascotas.', provider: 'Voluntariado PLs', city: 'Pereira', serviceMode: 'presencial', location: 'Centro de acopio', availability: 'Sábados · cupos limitados', pricingType: 'gratis', price: 'Sin costo' },
+  { id: seedId(), type: 'ofrecido', category: 'Comunicación', title: 'Diseño de piezas para la comunidad', description: 'Apoyo para crear avisos claros sobre necesidades, rutas y comunicados.', provider: 'Diseñadora voluntaria', city: 'Remoto / toda Colombia', serviceMode: 'remoto', location: 'Atención remota', availability: 'Por agenda', pricingType: 'intercambio', price: 'Aporte voluntario o intercambio' },
+  { id: seedId(), type: 'ofrecido', category: 'Almacenamiento', title: 'Almacenamiento temporal para ayudas', description: 'Espacio seco y seguro para guardar cajas plásticas y ayudas clasificadas.', provider: 'Bodega comunitaria aliada', city: 'Pereira', serviceMode: 'presencial', location: 'Zona urbana', availability: 'Durante las próximas semanas', pricingType: 'negociable', price: 'A convenir' },
+  { id: seedId(), type: 'gratuito', category: 'Primeros auxilios', title: 'Orientación básica de primeros auxilios', description: 'Espacio comunitario para resolver dudas y revisar botiquines antes de una ruta.', provider: 'Brigada de salud aliada', city: 'Dosquebradas', serviceMode: 'presencial', location: 'Punto comunitario', availability: 'Con cita previa', pricingType: 'gratis', price: 'Sin costo' },
+  { id: seedId(), type: 'ofrecido', category: 'Reparaciones', title: 'Reparación de linternas y radios', description: 'Revisión básica de elementos útiles para las rutas en zonas rurales.', provider: 'Taller comunitario', city: 'Santa Rosa de Cabal', serviceMode: 'presencial', location: 'Zona urbana', availability: 'Lunes a sábado', pricingType: 'pagado', price: 'Desde $15.000' },
+  { id: seedId(), type: 'ofrecido', category: 'Traducción', title: 'Traducción de avisos comunitarios', description: 'Adaptación de comunicados para que puedan entenderse mejor en distintas comunidades.', provider: 'Equipo de comunicaciones', city: 'Remoto / toda Colombia', serviceMode: 'remoto', location: 'Atención remota', availability: 'Por agenda', pricingType: 'intercambio', price: 'Aporte voluntario o intercambio' },
+  { id: seedId(), type: 'gratuito', category: 'Mascotas', title: 'Guía de cuidado para animales', description: 'Orientación para preparar alimento, agua y elementos de cuidado durante una emergencia.', provider: 'Red animalista comunitaria', city: 'Remoto / toda Colombia', serviceMode: 'remoto', location: 'Atención remota', availability: 'Respuesta en 24 horas', pricingType: 'gratis', price: 'Sin costo' },
 ]
 
 export const seedBulletins = [
@@ -358,7 +358,11 @@ const services = seedServices.map((service, index) => ({
   type: service.type,
   category: service.category,
   provider: service.provider,
+  city: service.city,
+  serviceMode: service.serviceMode,
   location: service.location,
+  availability: service.availability,
+  pricingType: service.pricingType,
   price: service.price,
   whatsappCountryCode: '+57',
   whatsappNumber: `300 555 ${String(1000 + index).slice(-4)}`,
@@ -367,6 +371,12 @@ const services = seedServices.map((service, index) => ({
   featured: index < 3,
   publishedAt: new Date(Date.now() - index * 60 * 60 * 1000).toISOString(),
 }))
+
+const legacyServiceTitles: Record<string, string> = {
+  'Valoración veterinaria para animales': 'Se necesita valoración veterinaria',
+  'Almacenamiento temporal para ayudas': 'Se requiere espacio temporal',
+  'Traducción de avisos comunitarios': 'Se necesita apoyo para traducir avisos',
+}
 
 const bulletins = seedBulletins.map((bulletin, index) => ({
   id: bulletin.id,
@@ -408,12 +418,15 @@ async function seed() {
   const payload = await getPayload({ config })
   type SeedCollection = 'resources' | 'aid-intakes' | 'needs' | 'announcements' | 'distributions' | 'distribution-evidence' | 'volunteer-activities' | 'community-notices' | 'services' | 'bulletins' | 'support-requests'
 
-  const ensure = async (collection: SeedCollection, lookupFields: string[], data: Record<string, unknown>) => {
+  const ensure = async (collection: SeedCollection, lookupFields: string[], data: Record<string, unknown>, alternateWhere?: Record<string, { equals: string }>) => {
     const { id: seedRecordId, ...recordData } = data
     const where = { and: lookupFields.map((field) => ({ [field]: { equals: recordData[field] } })) }
-    const existing = await payload.find({ collection, where, limit: 1, overrideAccess: true })
-    if (existing.docs.length) {
-      const previous = existing.docs[0] as unknown as Record<string, unknown>
+    const primary = await payload.find({ collection, where, limit: 1, overrideAccess: true })
+    const alternate = !primary.docs.length && alternateWhere
+      ? await payload.find({ collection, where: alternateWhere, limit: 1, overrideAccess: true })
+      : primary
+    if (alternate.docs.length) {
+      const previous = alternate.docs[0] as unknown as Record<string, unknown>
       const previousWasSeeded = legacySeedActors.has(String(previous.registeredBy || ''))
       const auditedData = {
         ...recordData,
@@ -422,8 +435,8 @@ async function seed() {
         updatedBy: previousWasSeeded ? seedAuditActor : auditActor(previous.updatedBy),
         updatedByUserId: previousWasSeeded ? null : auditUserId(previous.updatedByUserId),
       }
-      await payload.update({ collection, id: existing.docs[0].id, data: auditedData as never, context: seedContext, overrideAccess: true })
-      return existing.docs[0].id
+      await payload.update({ collection, id: alternate.docs[0].id, data: auditedData as never, context: seedContext, overrideAccess: true })
+      return alternate.docs[0].id
     }
     const created = await payload.create({
       collection,
@@ -446,7 +459,10 @@ async function seed() {
   for (const need of needs) await ensure('needs', ['title'], need)
   for (const announcement of announcements) await ensure('announcements', ['title'], announcement)
   for (const activity of activities) await ensure('volunteer-activities', ['title'], activity)
-  for (const service of services) await ensure('services', ['title'], service)
+  for (const service of services) {
+    const legacyTitle = legacyServiceTitles[service.title]
+    await ensure('services', ['title'], service, legacyTitle ? { title: { equals: legacyTitle } } : undefined)
+  }
   for (const bulletin of bulletins) await ensure('bulletins', ['title'], bulletin)
   for (const request of seedSupportRequests) await ensure('support-requests', ['contactName'], request)
 

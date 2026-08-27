@@ -530,7 +530,7 @@ export interface CommunityNotice {
   createdAt: string;
 }
 /**
- * Servicios gratuitos, ofrecidos por la comunidad o que todavía se necesitan.
+ * Servicios gratuitos y oportunidades de trabajo ofrecidas por la comunidad.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "services".
@@ -541,10 +541,33 @@ export interface Service {
   description: string;
   image?: (string | null) | Media;
   type: 'gratuito' | 'ofrecido' | 'necesitado';
+  /**
+   * Usa una categoría corta y clara, por ejemplo: Transporte, Mascotas, Salud o Reparaciones.
+   */
   category: string;
   provider: string;
+  /**
+   * Escribe la ciudad o municipio donde se presta. También puedes indicar Remoto / toda Colombia.
+   */
+  city: string;
+  serviceMode: 'presencial' | 'domicilio' | 'remoto' | 'hibrido';
+  /**
+   * Especifica el sector, punto de encuentro o alcance del servicio.
+   */
   location: string;
+  /**
+   * Ejemplo: lunes a viernes en la tarde, con cita previa o cupos limitados.
+   */
+  availability?: string | null;
+  pricingType: 'gratis' | 'pagado' | 'negociable' | 'intercambio' | 'por-definir';
+  /**
+   * Haz visible el valor, rango o condición del servicio cuando sea de pago.
+   */
   price?: string | null;
+  /**
+   * Lo muestra primero en el directorio.
+   */
+  featured?: boolean | null;
   whatsappCountryCode:
     '+57' | '+1' | '+52' | '+51' | '+54' | '+56' | '+593' | '+58' | '+34' | '+44' | '+49' | '+33' | '+39' | '+61';
   /**
@@ -1041,8 +1064,13 @@ export interface ServicesSelect<T extends boolean = true> {
   type?: T;
   category?: T;
   provider?: T;
+  city?: T;
+  serviceMode?: T;
   location?: T;
+  availability?: T;
+  pricingType?: T;
   price?: T;
+  featured?: T;
   whatsappCountryCode?: T;
   whatsappNumber?: T;
   status?: T;

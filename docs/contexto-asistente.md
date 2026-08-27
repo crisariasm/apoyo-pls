@@ -263,17 +263,21 @@ Campos: **Título**, **Resumen**, **Contenido completo**, **Categoría**, **Equi
 Valores por defecto: categoría «Actualización», equipo responsable «Equipo del centro», estado **Publicado** y la fecha de hoy.
 
 ### 5.5 Servicios
-> *Administra servicios gratuitos, ofrecidos por la comunidad o solicitados.* Rol: **Servicios**.
+> *Administra servicios gratuitos y oportunidades de trabajo ofrecidas por la comunidad.* Rol: **Servicios**.
 
 | Campo | Tipo | Obligatorio |
 |---|---|:--:|
 | Nombre del servicio | Texto | Sí |
 | Descripción | Texto largo | Sí |
 | Imagen del servicio | Imagen compatible, máximo 10 MB | No |
-| Tipo | Gratuito · Ofrecido por la comunidad · Se necesita | Sí |
+| Tipo | Gratuito · Ofrecido por la comunidad · Solicitud de apoyo | Sí |
 | Categoría | Texto | Sí |
 | Persona, equipo u organización | Texto | Sí |
-| Zona o modalidad | Texto | Sí |
+| Ciudad o cobertura | Texto | Sí |
+| Modalidad | Presencial · A domicilio · Remoto · Híbrido | Sí |
+| Barrio, zona o cobertura | Texto | Sí |
+| Disponibilidad | Texto | No |
+| Tipo de tarifa | Gratis · De pago · Tarifa negociable · Intercambio o aporte · Por definir | Sí |
 | Costo o condición | Texto | No |
 | Indicativo de WhatsApp | Lista de países, `+57` por defecto | Sí |
 | Número de WhatsApp | Texto, sin indicativo | Sí |
@@ -407,7 +411,7 @@ Las páginas públicas se refrescan solas cada pocos segundos, así que muestran
 | `/distribucion` Seguimiento | Salidas registradas por destino general, con organización y estado, más las evidencias publicadas | Consultar y ver las imágenes de evidencia |
 | `/ayudar` Quiero ayudar | Actividades próximas con fecha, horario, lugar y cupos disponibles | Enviar el formulario **Cuéntanos cómo puedes ayudar** |
 | `/solicitar-apoyo` Solicitar apoyo | Explicación del proceso | Enviar el formulario **Cuéntanos qué hace falta** |
-| `/servicios` Servicios | Servicios gratuitos, ofrecidos por la comunidad y los que se necesitan | Buscar, filtrar por categoría, ver imagen y usar **Solicitar servicio** por WhatsApp con el mensaje automático o, en los que se necesitan, **Puedo ayudar** |
+| `/servicios` Servicios | Servicios gratuitos y oportunidades de trabajo de la comunidad | Buscar y filtrar por categoría, ciudad o tarifa; ver la información completa y contactar por WhatsApp |
 | `/comunicados` Comunicados | Avisos de la comunidad: mascotas encontradas, vivienda, objetos perdidos e información comunitaria | Leer cada aviso con su categoría, zona y canal de contacto, y compartirlo |
 | `/boletin` Boletín | Avances, registros y aprendizajes de la operación | Leer las entradas publicadas |
 

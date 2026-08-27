@@ -2,6 +2,7 @@ import { ValidationError, type CollectionAfterChangeHook, type CollectionAfterDe
 
 import { canManageServices, isPayloadAdminUser } from '../lib/access'
 import { deleteUnreferencedMedia, mediaReferencesFromDocument } from '../lib/media-cleanup'
+import { serviceModes, servicePricingTypes } from '../lib/service-options'
 import { isValidWhatsAppNumber, whatsappCountryCodes } from '../lib/whatsapp'
 
 const validateServiceContact: CollectionBeforeValidateHook = ({ data, originalDoc, req }) => {
@@ -24,9 +25,9 @@ export const Services: CollectionConfig = {
   slug: 'services',
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'type', 'category', 'location', 'status'],
+    defaultColumns: ['title', 'type', 'category', 'city', 'pricingType', 'status'],
     group: 'Comunidad',
-    description: 'Servicios gratuitos, ofrecidos por la comunidad o que todavía se necesitan.',
+    description: 'Servicios gratuitos y oportunidades de trabajo ofrecidas por la comunidad.',
   },
   access: {
     admin: isPayloadAdminUser,
@@ -52,13 +53,18 @@ export const Services: CollectionConfig = {
       options: [
         { label: 'Gratuito', value: 'gratuito' },
         { label: 'Ofrecido por la comunidad', value: 'ofrecido' },
-        { label: 'Se necesita', value: 'necesitado' },
+        { label: 'Solicitud de apoyo', value: 'necesitado' },
       ],
     },
-    { name: 'category', type: 'text', label: 'Categoría', required: true },
+    { name: 'category', type: 'text', label: 'Categoría', required: true, admin: { description: 'Usa una categoría corta y clara, por ejemplo: Transporte, Mascotas, Salud o Reparaciones.' } },
     { name: 'provider', type: 'text', label: 'Persona, equipo u organización', required: true },
-    { name: 'location', type: 'text', label: 'Zona o modalidad', required: true },
-    { name: 'price', type: 'text', label: 'Costo o condición' },
+    { name: 'city', type: 'text', label: 'Ciudad o cobertura', required: true, defaultValue: 'Pereira', maxLength: 100, admin: { description: 'Escribe la ciudad o municipio donde se presta. También puedes indicar Remoto / toda Colombia.' }, index: true },
+    { name: 'serviceMode', type: 'select', label: 'Modalidad', required: true, defaultValue: 'presencial', options: serviceModes.map((option) => ({ ...option })) },
+    { name: 'location', type: 'text', label: 'Barrio, zona o cobertura', required: true, admin: { description: 'Especifica el sector, punto de encuentro o alcance del servicio.' } },
+    { name: 'availability', type: 'text', label: 'Disponibilidad', admin: { description: 'Ejemplo: lunes a viernes en la tarde, con cita previa o cupos limitados.' } },
+    { name: 'pricingType', type: 'select', label: 'Tipo de tarifa', required: true, defaultValue: 'gratis', options: servicePricingTypes.map((option) => ({ ...option })) },
+    { name: 'price', type: 'text', label: 'Costo o condición', admin: { description: 'Haz visible el valor, rango o condición del servicio cuando sea de pago.' } },
+    { name: 'featured', type: 'checkbox', label: 'Destacado', defaultValue: false, index: true, admin: { description: 'Lo muestra primero en el directorio.' } },
     { name: 'whatsappCountryCode', type: 'select', label: 'Indicativo de WhatsApp', required: true, defaultValue: '+57', options: whatsappCountryCodes.map((option) => ({ ...option })) },
     { name: 'whatsappNumber', type: 'text', label: 'Número de WhatsApp', required: true, maxLength: 20, admin: { description: 'Escríbelo sin el indicativo, por ejemplo: 300 123 4567.' } },
     {

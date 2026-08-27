@@ -378,10 +378,9 @@ La página pagina los comunicados de seis en seis y utiliza `navigator.share` cu
 Directorio de capacidades de la comunidad:
 
 - Servicios gratuitos.
-- Servicios ofrecidos por la comunidad.
-- Servicios que todavía se necesitan.
+- Servicios y oportunidades de trabajo ofrecidos por la comunidad.
 
-Incluye búsqueda por texto y filtro por categoría. Cada tarjeta muestra la imagen opcional del servicio, proveedor, zona o modalidad y costo o condición. Cuando el registro tiene WhatsApp válido, **Solicitar servicio** abre directamente un chat con el número configurado y un mensaje automático; los servicios sin contacto usan el formulario público correspondiente.
+Incluye búsqueda por texto y filtros por categoría, ciudad y tarifa. Cada tarjeta muestra la imagen opcional del servicio, proveedor, ciudad, modalidad, disponibilidad y costo o condición. Cuando el registro tiene WhatsApp válido, **Contactar** abre directamente un chat con el número configurado y un mensaje automático; los servicios sin contacto usan el formulario público correspondiente.
 
 ### `/boletin`
 
@@ -458,7 +457,7 @@ El rol de administración puede consultar todos los módulos. Cada rol operativo
 | `/equipo/necesitamos` | Qué necesitamos | `needs` | Publica necesidades, categorías, prioridades, cantidades y zonas |
 | `/equipo/anuncios` | Anuncios del centro | `announcements` | Publica horarios, necesidades, rutas, información oficial e impacto |
 | `/equipo/boletin` | Boletín informativo | `bulletins` | Redacta resúmenes, contenido completo, categorías y estado |
-| `/equipo/servicios` | Servicios | `services` | Registra servicios gratuitos, ofrecidos o necesarios, con imagen opcional y WhatsApp obligatorio |
+| `/equipo/servicios` | Servicios | `services` | Registra servicios gratuitos y oportunidades de trabajo, con ciudad, tarifa, imagen opcional y WhatsApp obligatorio |
 | `/equipo/inventario` | Inventario | `resources` | Actualiza recursos disponibles, cantidad, unidad y estado |
 | `/equipo/distribucion` | Distribución | `distributions` | Registra salidas, destinos, equipos responsables y estado |
 | `/equipo/evidencias` | Evidencias | `distribution-evidence` | Sube imágenes y descripciones de distribuciones u otros registros |

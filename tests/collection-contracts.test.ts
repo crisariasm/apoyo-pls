@@ -133,11 +133,14 @@ test('las actividades permiten marcar una actividad como destacada', () => {
 test('los servicios permiten imagen, WhatsApp y limpian medios reemplazados', async () => {
   const fields = namedFields(Services.fields)
   const image = fields.get('image') as { type?: string; relationTo?: string } | undefined
+  const vision = fields.get('vision') as { type?: string; maxLength?: number } | undefined
   const countryCode = fields.get('whatsappCountryCode') as { defaultValue?: string; required?: boolean; options?: Array<{ value: string }> } | undefined
   const phone = fields.get('whatsappNumber') as { required?: boolean; maxLength?: number } | undefined
 
   assert.equal(image?.type, 'upload')
   assert.equal(image?.relationTo, 'media')
+  assert.equal(vision?.type, 'text')
+  assert.equal(vision?.maxLength, 160)
   assert.equal(countryCode?.defaultValue, '+57')
   assert.equal(countryCode?.required, true)
   assert.ok((countryCode?.options?.length || 0) >= 5)

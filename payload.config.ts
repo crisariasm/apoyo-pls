@@ -105,7 +105,11 @@ export default buildConfig({
       keepAlive: true,
       keepAliveInitialDelayMillis: 10000,
     },
-    push: process.env.NODE_ENV !== 'production',
+    // El seeder ejecuta las migraciones de forma explícita. Desactivar `push`
+    // solo en ese proceso evita la confirmación interactiva de Payload cuando
+    // una base local ya recibió cambios dinámicos; el desarrollo normal sigue
+    // teniendo sincronización rápida y producción nunca usa `push`.
+    push: process.env.NODE_ENV !== 'production' && process.env.PAYLOAD_MIGRATIONS !== 'true',
   }),
   sharp,
   cors: [process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'],

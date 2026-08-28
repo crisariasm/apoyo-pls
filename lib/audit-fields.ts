@@ -16,6 +16,7 @@ const maxLengths: Record<string, number> = {
   zone: 160,
   organization: 200,
   provider: 200,
+  providerEmail: 254,
   location: 160,
   contact: 200,
   contactName: 160,

@@ -18,7 +18,7 @@ import { resourceCategories } from './resource-categories'
 import { serviceModes, servicePricingTypes } from './service-options'
 import { whatsappCountryCodes } from './whatsapp'
 
-export type PortalFieldType = 'text' | 'textarea' | 'number' | 'date' | 'checkbox' | 'select' | 'upload'
+export type PortalFieldType = 'text' | 'email' | 'textarea' | 'number' | 'date' | 'checkbox' | 'select' | 'upload' | 'coverage'
 
 export type PortalField = {
   name: string
@@ -29,6 +29,7 @@ export type PortalField = {
   maxLength?: number
   placeholder?: string
   description?: string
+  hidden?: boolean
   options?: Array<{ label: string; value: string }>
   group?: string
 }
@@ -207,6 +208,7 @@ export const portalModules: PortalModule[] = [
     fields: [
       { name: 'title', label: 'Nombre del servicio', type: 'text', required: true },
       { name: 'description', label: 'Descripción', type: 'textarea', required: true },
+      { name: 'vision', label: 'Visión PL', type: 'text', maxLength: 160, description: 'Escribe una frase corta que resuma el propósito del servicio.' },
       { name: 'image', label: 'Imagen del servicio', type: 'upload', description: 'Imagen pública del servicio. Se optimiza a WebP y se guarda en R2.' },
       { name: 'type', label: 'Tipo', type: 'select', required: true, options: [
         { label: 'Gratuito', value: 'gratuito' },
@@ -215,13 +217,15 @@ export const portalModules: PortalModule[] = [
       ] },
       { name: 'category', label: 'Categoría', type: 'text', required: true },
       { name: 'provider', label: 'Persona, equipo u organización', type: 'text', required: true },
-      { name: 'city', label: 'Ciudad o cobertura', type: 'text', maxLength: 100, placeholder: 'Ej.: Pereira, Cali o Remoto / toda Colombia', description: 'Escribe dónde se presta el servicio. Así se podrá encontrar por ciudad.' },
+      { name: 'city', label: 'Ciudad principal', type: 'text', hidden: true, maxLength: 100 },
+      { name: 'coverage', label: 'Ciudades y municipios', type: 'coverage', required: true, description: 'Selecciona un departamento y luego agrega una o varias ciudades. Las coberturas actuales se conservan.' },
       { name: 'serviceMode', label: 'Modalidad', type: 'select', options: serviceModes.map((option) => ({ ...option })) },
       { name: 'location', label: 'Barrio, zona o cobertura', type: 'text', required: true, placeholder: 'Ej.: Cuba, sector centro o todo Pereira' },
       { name: 'availability', label: 'Disponibilidad', type: 'text', maxLength: 160, placeholder: 'Ej.: Con cita previa, lunes a viernes' },
       { name: 'pricingType', label: 'Tipo de tarifa', type: 'select', options: servicePricingTypes.map((option) => ({ ...option })), description: 'Haz explícito si es gratis, de pago o negociable.' },
-      { name: 'price', label: 'Costo o condición', type: 'text', maxLength: 160, placeholder: 'Ej.: $40.000 por hora o a convenir' },
       { name: 'featured', label: 'Destacado', type: 'checkbox', description: 'Lo muestra primero en el directorio.' },
+      visibilityField,
+      { name: 'providerEmail', label: 'Correo de contacto', type: 'email', maxLength: 254, placeholder: 'Opcional · correo para seguimiento interno', description: 'Si lo indicas, debe tener un formato válido. No se publica.' },
       { name: 'whatsappCountryCode', label: 'Indicativo', type: 'select', required: true, group: 'whatsapp', options: whatsappCountryCodes.map((option) => ({ ...option })), description: 'Selecciona el país del número.' },
       { name: 'whatsappNumber', label: 'Número de WhatsApp', type: 'text', required: true, group: 'whatsapp', maxLength: 20, placeholder: '300 123 4567', description: 'Escríbelo sin el indicativo.' },
       { name: 'status', label: 'Estado', type: 'select', required: true, options: [
@@ -229,7 +233,6 @@ export const portalModules: PortalModule[] = [
         { label: 'Publicado', value: 'publicado' },
         { label: 'Archivado', value: 'archivado' },
       ] },
-      visibilityField,
       { name: 'publishedAt', label: 'Fecha de publicación', type: 'date' },
     ],
   },

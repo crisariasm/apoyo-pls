@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
 import { StaffModulePanel } from '../components/module-panel'
+import { ServiceOfferReviewPanel } from '../components/service-offer-review-panel'
 import { PortalShell } from '../components/portal-shell'
 import { SupportRequestPanel } from '../components/support-request-panel'
 import { canAccessModule, getPortalModule, getModulesForRole } from '../../../../lib/staff-portal-config'
@@ -36,7 +37,10 @@ export default async function StaffModulePage({ params }: PageProps) {
   const showAllRequests = moduleDefinition.slug === 'administracion'
   const result = await session.payload.find({ collection: moduleForView.collection, depth: 1, ...(showAllRequests ? { pagination: false } : { limit: PAGE_SIZE, page: 1 }), sort: '-updatedAt', where: getPortalOwnershipWhere(session.user, moduleForView.slug), overrideAccess: true, user: session.user })
   const records = sanitizePortalRecords(moduleForView, JSON.parse(JSON.stringify(result.docs)))
+  const pendingServiceOffers = moduleDefinition.slug === 'servicios'
+    ? (await session.payload.find({ collection: 'services', depth: 0, pagination: false, sort: '-createdAt', where: { and: [{ submissionSource: { equals: 'public-offer' } }, { status: { equals: 'borrador' } }] }, overrideAccess: true, user: session.user })).docs as unknown as Record<string, unknown>[]
+    : []
   const modules = getModulesForRole(session.user.role)
 
-  return <PortalShell name={session.user.name} userId={session.user.id} role={session.user.role} modules={modules}><section className="staff-page-intro"><div><Link className="staff-back-link" href="/equipo">← Volver al resumen</Link><p className="staff-eyebrow">Módulo operativo</p><h1>{moduleDefinition.label}</h1><p>{moduleDefinition.description}</p></div></section>{showAllRequests ? <SupportRequestPanel initialRecords={records} canManage /> : <StaffModulePanel module={moduleForView} initialRecords={records} initialPage={result.page || 1} initialTotalPages={result.totalPages || 1} initialTotalDocs={result.totalDocs} />}</PortalShell>
+  return <PortalShell name={session.user.name} userId={session.user.id} role={session.user.role} modules={modules}><section className="staff-page-intro"><div><Link className="staff-back-link" href="/equipo">← Volver al resumen</Link><p className="staff-eyebrow">Módulo operativo</p><h1>{moduleDefinition.label}</h1><p>{moduleDefinition.description}</p></div></section>{showAllRequests ? <SupportRequestPanel initialRecords={records} canManage /> : <>{moduleDefinition.slug === 'servicios' && <ServiceOfferReviewPanel initialRecords={JSON.parse(JSON.stringify(pendingServiceOffers))} />}<StaffModulePanel module={moduleForView} initialRecords={records} initialPage={result.page || 1} initialTotalPages={result.totalPages || 1} initialTotalDocs={result.totalDocs} /></>}</PortalShell>
 }

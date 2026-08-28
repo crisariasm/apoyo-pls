@@ -382,6 +382,8 @@ Directorio de capacidades de la comunidad:
 
 Incluye búsqueda por texto y filtros por categoría, ciudad y tarifa. Cada tarjeta muestra la imagen opcional del servicio, proveedor, ciudad, modalidad, disponibilidad y costo o condición. Cuando el registro tiene WhatsApp válido, **Contactar** abre directamente un chat con el número configurado y un mensaje automático; los servicios sin contacto usan el formulario público correspondiente.
 
+El botón **Quiero ofrecer un servicio** abre un formulario responsive para registrar los datos de contacto, nombre y categoría del servicio, descripción, **Visión PL** corta (mínimo 4 caracteres), cobertura por departamento y municipios, zona, modalidad, disponibilidad, tarifa y una foto obligatoria. El valor de un servicio de pago se acuerda directamente por WhatsApp; el formulario solo registra el tipo de tarifa. La propuesta queda como **Borrador**, no visible y no destacada hasta que el equipo la revise.
+
 ### `/boletin`
 
 Publica avances, registros y aprendizajes de la operación.
@@ -457,7 +459,7 @@ El rol de administración puede consultar todos los módulos. Cada rol operativo
 | `/equipo/necesitamos` | Qué necesitamos | `needs` | Publica necesidades, categorías, prioridades, cantidades y zonas |
 | `/equipo/anuncios` | Anuncios del centro | `announcements` | Publica horarios, necesidades, rutas, información oficial e impacto |
 | `/equipo/boletin` | Boletín informativo | `bulletins` | Redacta resúmenes, contenido completo, categorías y estado |
-| `/equipo/servicios` | Servicios | `services` | Registra servicios gratuitos y oportunidades de trabajo, con ciudad, tarifa, imagen opcional y WhatsApp obligatorio |
+| `/equipo/servicios` | Servicios | `services` | Registra servicios gratuitos y oportunidades de trabajo, con coberturas por ciudad, tarifa, imagen y WhatsApp; también revisa propuestas públicas |
 | `/equipo/inventario` | Inventario | `resources` | Actualiza recursos disponibles, cantidad, unidad y estado |
 | `/equipo/distribucion` | Distribución | `distributions` | Registra salidas, destinos, equipos responsables y estado |
 | `/equipo/evidencias` | Evidencias | `distribution-evidence` | Sube imágenes y descripciones de distribuciones u otros registros |
@@ -475,6 +477,9 @@ El rol de administración puede consultar todos los módulos. Cada rol operativo
 - Las evidencias exigen distribución cuando el origen es “Salida de distribución”.
 - Las evidencias exigen una referencia cuando el origen es “Otro registro operativo”.
 - En Servicios, el indicativo y el número de WhatsApp son obligatorios; la imagen es opcional.
+- En el formulario público de Servicios, la foto y la aceptación de privacidad son obligatorias; la **Visión PL** debe ser una frase corta de mínimo 4 caracteres.
+- En Servicios, la cobertura se selecciona por departamento y luego por uno o varios municipios. La ciudad principal antigua se conserva para compatibilidad con registros existentes.
+- Las propuestas públicas llegan como borradores a **Solicitudes para publicar** dentro de `/equipo/servicios`. El equipo puede abrir y colapsar cada solicitud, revisar la foto y los datos, marcar primero **Destacado**, decidir **Visible públicamente**, definir la fecha y aprobar o eliminar.
 - En edición de imágenes no se reemplaza directamente el archivo: primero se elimina el anterior y luego se carga uno nuevo.
 - Los registros de cada módulo son visibles para todo el equipo autorizado en ese módulo. Así pueden revisar lo que ya existe antes de crear otro registro.
 - Cada registro conserva `Registrado por` como su creador original. Si otra persona lo modifica, `Actualizado por` muestra al último responsable sin reemplazar al creador.
@@ -483,7 +488,7 @@ El rol de administración puede consultar todos los módulos. Cada rol operativo
 
 ### Solicitudes compartidas
 
-Las solicitudes enviadas desde la página pública llegan a `/equipo/administracion`.
+Las solicitudes de apoyo y las ofertas generales enviadas desde la página pública llegan a `/equipo/administracion`. Las propuestas para ofrecer un servicio tienen una bandeja específica dentro de `/equipo/servicios`, porque requieren completar la publicación antes de hacerse visibles.
 
 Todos los roles operativos pueden:
 
@@ -707,7 +712,7 @@ Todas las colecciones pasan por [withAuditFields](./lib/audit-fields.ts), que a�
 | `announcements` | Anuncios del centro | Título, contenido, tipo, estado, destacado, visibilidad, fecha de publicación y vencimiento |
 | `bulletins` | Boletines | Título, resumen, contenido completo, categoría, autor, estado, destacado, visibilidad y fecha |
 | `community-notices` | Comunicados | Título, descripción, categoría, imagen, zona, contacto, estado, destacado, visibilidad y fecha |
-| `services` | Servicios | Título, descripción, imagen opcional, tipo, categoría, proveedor, zona o modalidad, costo, indicativo y número de WhatsApp obligatorios, estado, visibilidad y fecha |
+| `services` | Servicios | Título, descripción, Visión PL corta, imagen, tipo, categoría, proveedor, ciudad principal, coberturas por departamento/municipio, zona, modalidad, disponibilidad, tarifa, indicativo y número de WhatsApp, estado, visibilidad, destacado y fecha |
 
 ### Colecciones técnicas
 
@@ -770,14 +775,14 @@ Los nombres de familias, menores, documentos, teléfonos sensibles y ubicaciones
 5. Al publicar y marcar visible, aparece en `/comunicados`.
 6. La comunidad puede compartir el enlace de la tarjeta.
 
-### Publicar un servicio
+### Proponer y publicar un servicio
 
-1. El rol Servicios abre `/equipo/servicios`.
-2. Completa nombre, descripción, tipo, categoría, persona/equipo u organización y zona o modalidad.
-3. Selecciona el indicativo de WhatsApp —`+57` aparece por defecto— y escribe el número sin el indicativo. Ambos campos son obligatorios.
-4. Si quieres, carga una imagen compatible de hasta 10 MB. El mismo componente reutilizado de medios la convierte a WebP con Sharp y la guarda en R2.
-5. Indica costo o condición, estado, visibilidad y fecha de publicación.
-6. En `/servicios`, **Solicitar servicio** abre WhatsApp con el mensaje automático. Si se edita la imagen, el medio anterior se elimina de R2; al borrar el servicio también se elimina su imagen si ya no tiene otras referencias.
+1. Una persona pulsa **Quiero ofrecer un servicio** en la página pública.
+2. Completa sus datos, una descripción, una **Visión PL** corta, cobertura por departamento y municipios, modalidad, tarifa, WhatsApp, foto y privacidad.
+3. La propuesta llega como **Borrador** a la bandeja **Solicitudes para publicar** de `/equipo/servicios`; todavía no aparece en `/servicios`.
+4. El rol Servicios abre la solicitud, revisa la información y la foto, y puede colapsar el detalle para revisar otra propuesta.
+5. Marca **Destacado** si corresponde, decide **Visible públicamente**, define la fecha y pulsa **Aprobar servicio**. También puede eliminar una solicitud.
+6. Al aprobar, el sistema registra quién aprobó y cuándo. Solo los servicios publicados y visibles aparecen en el directorio. En el registro interno, la imagen se optimiza a WebP y se guarda en R2 con una clave UUID, por lo que repetir el nombre original de un archivo no provoca colisiones.
 
 ## Actualización automática
 
@@ -879,7 +884,7 @@ Al eliminar una imagen desde el portal:
 
 Al eliminar o reemplazar un comunicado, una evidencia, una distribución o un servicio, el backend revisa las referencias restantes antes de eliminar su media. Una imagen que todavía usa otro registro se conserva; una imagen sin referencias se elimina junto con su objeto de R2. Esto también cubre las evidencias legadas embebidas en las distribuciones.
 
-No se necesita una URL pública del bucket. El backend descarga los objetos de R2 y los sirve mediante una ruta propia con caché inmutable.
+No se necesita una URL pública del bucket. El backend descarga los objetos de R2 y los sirve mediante una ruta propia con caché inmutable. En el portal, las imágenes de solicitudes autorizadas usan una caché privada corta para que al abrir o volver a abrir una propuesta no se repita innecesariamente toda la lectura de autenticación y almacenamiento.
 
 ### Permisos de medios
 
@@ -932,7 +937,11 @@ una base completamente vacía cree `payload_migrations` y todas las tablas antes
 de insertar los datos. La migración inicial está en
 `migrations/20260821_182428_baseline.ts` y su archivo `.json` es únicamente el
 snapshot que Payload necesita para generar migraciones futuras; no es una
-migración adicional.
+migración adicional. Los cambios nuevos del directorio de Servicios se
+consolidaron en una sola migración idempotente:
+`migrations/20260827_140000_consolidate_service_directory_fields.ts`. Esta
+completa columnas, coberturas, valores heredados, índices y la posibilidad de
+repetir nombres originales de archivos en Media sin duplicar migraciones.
 
 ### Usuarios de prueba
 
@@ -979,9 +988,11 @@ pnpm payload:generate
 
 ### Crear y aplicar migraciones
 
-El proyecto parte de una única migración inicial que contiene el esquema
-completo actual: enums, usuarios, media, colecciones, relaciones, índices,
-`site_settings` y las tablas internas de Payload. Para una base vacía:
+El repositorio conserva las migraciones históricas que ya versionaron la base y
+una única migración para los cambios nuevos de Servicios. La migración
+consolidada es idempotente: agrega solo lo que falte, completa valores de
+registros existentes y puede ejecutarse tanto en una base vacía como en una
+base local que ya recibió los cambios mediante `push`. Para una base vacía:
 
 ```bash
 pnpm payload:migrate
@@ -1000,9 +1011,10 @@ pnpm payload:migrate:create
 ```
 
 En desarrollo, Payload puede sincronizar cambios de esquema con `push`, pero el
-seeder ejecuta primero la migración inicial para que el flujo sea igual desde
-una base vacía. En producción se debe ejecutar `pnpm payload:migrate` como parte
-del despliegue antes de iniciar la aplicación.
+seeder ejecuta primero todas las migraciones registradas para que el flujo sea
+igual desde una base vacía. En producción se debe ejecutar `pnpm payload:migrate`
+en staging y luego como parte del despliegue antes de iniciar la aplicación;
+esta revisión no ejecuta ninguna migración contra una base de producción.
 
 ### UUID y limpieza de desarrollo
 

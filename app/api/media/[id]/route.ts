@@ -68,21 +68,22 @@ export async function GET(request: Request, context: RouteContext) {
 
   try {
     const payload = await getPayload({ config })
-    let authenticatedViewer = false
-    if (request.headers.get('cookie')) {
-      try {
-        const authResult = await payload.auth({ headers: request.headers })
-        authenticatedViewer = canViewDraftMedia(authResult.user)
-      } catch {
-        authenticatedViewer = false
-      }
-    }
+    // La revisión del portal abre imágenes de borradores y necesita dos
+    // lecturas independientes. Ejecutarlas juntas evita que la autenticación
+    // retrase innecesariamente la lectura del metadato de Media.
+    const mediaPromise = payload.findByID({ collection: 'media', id: decodedId, overrideAccess: true }).catch(() => null)
+    const authPromise = request.headers.get('cookie')
+      ? payload.auth({ headers: request.headers }).catch(() => null)
+      : Promise.resolve(null)
+    const [mediaResult, authResult] = await Promise.all([mediaPromise, authPromise])
+    const authenticatedViewer = canViewDraftMedia(authResult?.user)
 
     if (!authenticatedViewer && !(await isPublishedMedia(payload, decodedId))) {
       return NextResponse.json({ message: 'La imagen no está disponible públicamente.' }, { status: 404 })
     }
 
-    const media = await payload.findByID({ collection: 'media', id: decodedId, overrideAccess: true }) as unknown as Record<string, unknown>
+    if (!mediaResult) return NextResponse.json({ message: 'La imagen no existe.' }, { status: 404 })
+    const media = mediaResult as unknown as Record<string, unknown>
     const key = typeof media.r2Key === 'string' ? media.r2Key : ''
     if (!key) return NextResponse.json({ message: 'La imagen no está almacenada en R2.' }, { status: 404 })
 
@@ -91,7 +92,7 @@ export async function GET(request: Request, context: RouteContext) {
     const headers = new Headers()
     const contentType = safeContentType(media.r2MimeType) || safeContentType(file.headers.get('content-type')) || 'application/octet-stream'
     headers.set('Content-Type', contentType)
-    headers.set('Cache-Control', authenticatedViewer ? 'private, no-store' : 'public, max-age=31536000, immutable')
+    headers.set('Cache-Control', authenticatedViewer ? 'private, max-age=300, stale-while-revalidate=600' : 'public, max-age=31536000, immutable')
     headers.set('X-Content-Type-Options', 'nosniff')
     const contentLength = file.headers.get('content-length')
     if (contentLength) headers.set('Content-Length', contentLength)

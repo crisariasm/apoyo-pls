@@ -3,8 +3,10 @@
 import { FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { PortalField, PortalModule } from '../../../../lib/staff-portal-config'
+import { serviceCoverageFromCity } from '../../../../lib/service-options'
 import { getPortalFieldMaxLength, normalizePortalData, validatePortalData } from '../../../../lib/staff-portal-validation'
 import { MediaField, type MediaValue } from './media-field'
+import { ServiceCoveragePicker } from '../../../components/service-coverage-picker'
 import { useStaffModuleRefresh } from './staff-live-refresh'
 
 type RecordData = Record<string, unknown>
@@ -18,7 +20,7 @@ function emptyForm(module: PortalModule) {
     necesitamos: { priority: 'media', status: 'abierta', publishedAt: today },
     anuncios: { type: 'oficial', status: 'publicado', publishedAt: today },
     boletin: { category: 'Actualización', author: 'Equipo del centro', status: 'publicado', publishedAt: today },
-    servicios: { type: 'gratuito', city: 'Pereira', serviceMode: 'presencial', pricingType: 'gratis', whatsappCountryCode: '+57', status: 'publicado', publishedAt: today },
+    servicios: { type: 'gratuito', city: '', coverage: [], serviceMode: 'presencial', pricingType: 'gratis', whatsappCountryCode: '+57', status: 'publicado', publishedAt: today },
     inventario: { status: 'disponible' },
     distribucion: { status: 'pendiente', date: today },
     actividades: { registered: 0, status: 'abierta', date: today },
@@ -36,6 +38,7 @@ function emptyForm(module: PortalModule) {
 function inputValue(field: PortalField, value: unknown) {
   if (field.type === 'checkbox') return Boolean(value)
   if (field.type === 'upload') return (value || null) as MediaValue
+  if (field.type === 'coverage') return Array.isArray(value) ? value : []
   if (value === null || value === undefined) return ''
   if (field.type === 'date' && typeof value === 'string') return value.slice(0, 10)
   if (field.type === 'select' && value && typeof value === 'object' && 'id' in value) return String((value as { id: string }).id)
@@ -90,6 +93,7 @@ function auditActorLabel(value: unknown) {
 function hasFieldValue(field: PortalField, value: unknown) {
   if (field.type === 'checkbox') return typeof value === 'boolean'
   if (field.type === 'upload') return value instanceof File || (typeof value === 'string' && value.trim() !== '') || Boolean(value && typeof value === 'object' && 'id' in value)
+  if (field.type === 'coverage') return Array.isArray(value) && value.length > 0
   if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return false
   if (field.type === 'number') {
     const numberValue = Number(value)
@@ -215,6 +219,7 @@ export function StaffModulePanel({
     if (!recordId) return
     setEditingId(recordId)
     const nextForm = Object.fromEntries(module.fields.map((field) => [field.name, inputValue(field, record[field.name])])) as RecordData
+    if (module.slug === 'servicios' && Array.isArray(nextForm.coverage) && nextForm.coverage.length === 0 && typeof nextForm.city === 'string') nextForm.coverage = serviceCoverageFromCity(nextForm.city)
     setForm(nextForm)
     setOriginalForm(nextForm)
     setRemovedMediaIds([])
@@ -235,6 +240,10 @@ export function StaffModulePanel({
       if (module.slug === 'evidencias' && field.name === 'sourceType') {
         if (value === 'otro') next.distribution = ''
         else next.otherReference = ''
+      }
+      if (module.slug === 'servicios' && field.name === 'coverage') {
+        const firstCoverage = Array.isArray(value) && value[0] && typeof value[0] === 'object' ? value[0] as { city?: unknown } : null
+        next.city = typeof firstCoverage?.city === 'string' ? firstCoverage.city : ''
       }
       return next
     })
@@ -411,6 +420,7 @@ export function StaffModulePanel({
 
 function RecordFields({ module, form, onChange, onRemoveMedia }: { module: PortalModule; form: RecordData; onChange: (field: PortalField, value: unknown) => void; onRemoveMedia: (id: string) => void }) {
   const visibleFields = module.fields.filter((field) => {
+    if (field.hidden) return false
     if (module.slug === 'evidencias' && field.name === 'distribution' && form.sourceType === 'otro') return false
     if (module.slug === 'evidencias' && field.name === 'otherReference' && form.sourceType !== 'otro') return false
     return true
@@ -440,6 +450,7 @@ function Pagination({ currentPage, totalPages, loading, onChange }: { currentPag
 function FieldControl({ field, value, onChange, onRemoveMedia }: { field: PortalField; value: unknown; onChange: (field: PortalField, value: unknown) => void; onRemoveMedia: (id: string) => void }) {
   if (field.type === 'checkbox') return <label className="staff-checkbox-field"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(field, event.target.checked)} /> <span>{field.label}</span></label>
   if (field.type === 'upload') return <MediaField label={`${field.label}${field.required ? ' *' : ''}`} value={(value || null) as MediaValue} description={field.description} onChange={(next) => onChange(field, next)} onRemove={onRemoveMedia} />
+  if (field.type === 'coverage') return <ServiceCoveragePicker value={value} required={field.required} onChange={(next) => onChange(field, next)} />
   if (field.type === 'textarea') return <label className="staff-field"><span>{field.label}{field.required && ' *'}</span><textarea value={String(value ?? '')} required={field.required} maxLength={getPortalFieldMaxLength(field)} placeholder={field.placeholder} onChange={(event) => onChange(field, event.target.value)} />{field.description && <small>{field.description}</small>}</label>
   if (field.type === 'select') return <label className="staff-field"><span>{field.label}{field.required && ' *'}</span><select value={String(value ?? '')} required={field.required} onChange={(event) => onChange(field, event.target.value)}><option value="" disabled hidden>Selecciona una opción</option>{field.options?.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select>{field.description && <small>{field.description}</small>}</label>
   if (field.type === 'date') return <label className="staff-field"><span>{field.label}{field.required && ' *'}</span><input type="date" lang="es-CO" value={String(value ?? '')} required={field.required} maxLength={getPortalFieldMaxLength(field)} onChange={(event) => onChange(field, event.target.value)} /><small>{inputDateLabel(value)}{field.description ? ` · ${field.description}` : ''}</small></label>

@@ -539,6 +539,10 @@ export interface Service {
   id: string;
   title: string;
   description: string;
+  /**
+   * Escribe una frase corta que resuma el propósito del servicio.
+   */
+  vision?: string | null;
   image?: (string | null) | Media;
   type: 'gratuito' | 'ofrecido' | 'necesitado';
   /**
@@ -547,9 +551,21 @@ export interface Service {
   category: string;
   provider: string;
   /**
-   * Escribe la ciudad o municipio donde se presta. También puedes indicar Remoto / toda Colombia.
+   * Se conserva como ciudad principal para compatibilidad. La cobertura completa se selecciona abajo.
    */
   city: string;
+  /**
+   * Selecciona uno o varios municipios. El formulario conserva la ciudad principal en el campo anterior.
+   */
+  coverage:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   serviceMode: 'presencial' | 'domicilio' | 'remoto' | 'hibrido';
   /**
    * Especifica el sector, punto de encuentro o alcance del servicio.
@@ -568,6 +584,11 @@ export interface Service {
    * Lo muestra primero en el directorio.
    */
   featured?: boolean | null;
+  publicVisible?: boolean | null;
+  /**
+   * Dato privado para que el equipo pueda contactar a quien ofrece el servicio. No se publica.
+   */
+  providerEmail?: string | null;
   whatsappCountryCode:
     '+57' | '+1' | '+52' | '+51' | '+54' | '+56' | '+593' | '+58' | '+34' | '+44' | '+49' | '+33' | '+39' | '+61';
   /**
@@ -575,8 +596,14 @@ export interface Service {
    */
   whatsappNumber: string;
   status: 'borrador' | 'publicado' | 'archivado';
-  publicVisible?: boolean | null;
   publishedAt?: string | null;
+  submissionSource?: ('staff' | 'public-offer') | null;
+  /**
+   * Se completa al aprobar una solicitud pública.
+   */
+  approvedBy?: string | null;
+  approvedByUserId?: string | null;
+  approvedAt?: string | null;
   /**
    * Se completa automáticamente con la persona que creó el registro.
    */
@@ -1060,22 +1087,29 @@ export interface CommunityNoticesSelect<T extends boolean = true> {
 export interface ServicesSelect<T extends boolean = true> {
   title?: T;
   description?: T;
+  vision?: T;
   image?: T;
   type?: T;
   category?: T;
   provider?: T;
   city?: T;
+  coverage?: T;
   serviceMode?: T;
   location?: T;
   availability?: T;
   pricingType?: T;
   price?: T;
   featured?: T;
+  publicVisible?: T;
+  providerEmail?: T;
   whatsappCountryCode?: T;
   whatsappNumber?: T;
   status?: T;
-  publicVisible?: T;
   publishedAt?: T;
+  submissionSource?: T;
+  approvedBy?: T;
+  approvedByUserId?: T;
+  approvedAt?: T;
   registeredBy?: T;
   registeredByUserId?: T;
   updatedBy?: T;

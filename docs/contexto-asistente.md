@@ -269,11 +269,13 @@ Valores por defecto: categoría «Actualización», equipo responsable «Equipo 
 |---|---|:--:|
 | Nombre del servicio | Texto | Sí |
 | Descripción | Texto largo | Sí |
-| Imagen del servicio | Imagen compatible, máximo 10 MB | No |
+| Visión PL | Frase corta de 4 a 160 caracteres | Sí en propuestas públicas |
+| Imagen del servicio | Imagen compatible, máximo 10 MB | No en el portal; sí en propuestas públicas |
 | Tipo | Gratuito · Ofrecido por la comunidad · Solicitud de apoyo | Sí |
 | Categoría | Texto | Sí |
 | Persona, equipo u organización | Texto | Sí |
-| Ciudad o cobertura | Texto | Sí |
+| Ciudad principal | Texto de compatibilidad para registros antiguos | No visible en el selector de cobertura |
+| Coberturas | Departamento y uno o varios municipios | Sí |
 | Modalidad | Presencial · A domicilio · Remoto · Híbrido | Sí |
 | Barrio, zona o cobertura | Texto | Sí |
 | Disponibilidad | Texto | No |
@@ -281,9 +283,15 @@ Valores por defecto: categoría «Actualización», equipo responsable «Equipo 
 | Costo o condición | Texto | No |
 | Indicativo de WhatsApp | Lista de países, `+57` por defecto | Sí |
 | Número de WhatsApp | Texto, sin indicativo | Sí |
-| Estado | Borrador · Publicado · Archivado | Sí |
+| Destacado | Casilla | No |
 | Visible públicamente | Casilla | No |
+| Estado | Borrador · Publicado · Archivado | Sí |
 | Fecha de publicación | Fecha | Sí para publicar |
+
+Las propuestas públicas también guardan un correo de contacto privado, el
+origen de la propuesta y los datos de auditoría de aprobación. **Destacado**
+aparece antes de **Visible públicamente** en la revisión para que el equipo
+decida ambas opciones de publicación de forma explícita.
 
 ### 5.6 Inventario — recursos disponibles
 > *Actualiza cantidades, estados y notas de los recursos disponibles.* Rol: **Inventario**.
@@ -411,7 +419,7 @@ Las páginas públicas se refrescan solas cada pocos segundos, así que muestran
 | `/distribucion` Seguimiento | Salidas registradas por destino general, con organización y estado, más las evidencias publicadas | Consultar y ver las imágenes de evidencia |
 | `/ayudar` Quiero ayudar | Actividades próximas con fecha, horario, lugar y cupos disponibles | Enviar el formulario **Cuéntanos cómo puedes ayudar** |
 | `/solicitar-apoyo` Solicitar apoyo | Explicación del proceso | Enviar el formulario **Cuéntanos qué hace falta** |
-| `/servicios` Servicios | Servicios gratuitos y oportunidades de trabajo de la comunidad | Buscar y filtrar por categoría, ciudad o tarifa; ver la información completa y contactar por WhatsApp |
+| `/servicios` Servicios | Servicios gratuitos y oportunidades de trabajo de la comunidad | Buscar y filtrar por texto, categoría, ciudad/municipio y tarifa; consultar la información y contactar por WhatsApp |
 | `/comunicados` Comunicados | Avisos de la comunidad: mascotas encontradas, vivienda, objetos perdidos e información comunitaria | Leer cada aviso con su categoría, zona y canal de contacto, y compartirlo |
 | `/boletin` Boletín | Avances, registros y aprendizajes de la operación | Leer las entradas publicadas |
 
@@ -428,6 +436,28 @@ La **cantidad es un número entero** y la unidad se elige de una lista: Unidades
 ### 8.3 Botón «Ofrecer esta ayuda» (`/necesidades`)
 
 Abre una ventana con el nombre de la necesidad, y pide **nombre**, **teléfono**, **cantidad** que se puede aportar y un **mensaje** opcional, más la aceptación de privacidad. Se envía como una oferta y también llega a **Solicitudes**.
+
+### 8.4 Botón «Quiero ofrecer un servicio» (`/ayudar`)
+
+Abre un formulario para que una persona ofrezca un oficio o servicio. Debe
+completar:
+
+- **Nombre completo**, **WhatsApp** con indicativo y, si quiere, correo electrónico.
+- **Nombre del servicio**, **Categoría o área** y una **Descripción del servicio** de al menos 20 caracteres.
+- **Visión PL**, una frase corta de al menos 4 y máximo 160 caracteres; no es un campo para escribir un texto largo.
+- La cobertura: primero elige un **departamento** y después uno o varios municipios. Puede agregar más coberturas sin reemplazar las anteriores.
+- **Barrio, zona o alcance**, **Modalidad**, **Disponibilidad** opcional y **Tarifa**. Si es de pago, el valor se acuerda directamente por WhatsApp.
+- Una **Foto del servicio** obligatoria, de máximo 10 MB, y la aceptación del aviso de privacidad.
+
+El botón de envío permanece deshabilitado hasta que los datos sean válidos. La
+propuesta entra como **Borrador**, con **Destacado** y **Visible públicamente**
+desactivados. No aparece en el directorio hasta la aprobación del equipo.
+
+En `/equipo/servicios`, la bandeja **Solicitudes para publicar** permite abrir
+una propuesta, revisar sus datos y su foto, colapsar el detalle, elegir
+**Destacado**, decidir **Visible públicamente**, indicar la **Fecha de
+publicación** y pulsar **Aprobar servicio**. También permite eliminarla. Al
+aprobar, queda registrado quién la aprobó y cuándo.
 
 ---
 
@@ -517,16 +547,14 @@ La clasificación se refleja en dos datos: la **Categoría** (a qué grupo perte
 5. Pulsa **Crear registro**. La entrada aparece en `/boletin`.
 
 ### 9.12 ¿Cómo publico un servicio?
-1. Entra al módulo **Servicios**.
-2. Escribe el **Nombre del servicio** y su **Descripción**.
-3. Elige el **Tipo**: *Gratuito*, *Ofrecido por la comunidad* o *Se necesita*.
-4. Completa **Categoría**, **Persona, equipo u organización** y **Zona o modalidad**.
-5. Selecciona el **Indicativo de WhatsApp** —`+57` aparece por defecto— y escribe el **Número de WhatsApp** sin el indicativo. Ambos son obligatorios.
-6. Si quieres, pulsa **Seleccionar imagen** para cargar una imagen compatible de máximo 10 MB. La imagen es opcional, se convierte a WebP con Sharp y se guarda en R2.
-7. Si aplica, indica **Costo o condición**.
-8. Deja el **Estado** en *Publicado* con su **Fecha de publicación** y pulsa **Crear registro**.
+1. Si la propuesta viene de la comunidad, sigue el flujo de **Quiero ofrecer un servicio** de la sección 8.4. Quedará como borrador pendiente de revisión.
+2. Entra al módulo **Servicios** y abre **Solicitudes para publicar**.
+3. Revisa nombre, descripción, **Visión PL**, cobertura, modalidad, tarifa, contacto y foto.
+4. Marca **Destacado** si corresponde, decide **Visible públicamente** y define la **Fecha de publicación**.
+5. Pulsa **Aprobar servicio**. Si la propuesta no corresponde, pulsa **Eliminar solicitud**.
+6. Para un registro creado directamente desde el portal, completa los mismos datos, incluida la cobertura por departamento y municipios, y publícalo según las reglas del módulo.
 
-En `/servicios`, el botón **Solicitar servicio** abre WhatsApp con el número registrado y un mensaje automático. Si el servicio es del tipo *Se necesita*, conserva la acción **Puedo ayudar** para llevar a la oferta de ayuda.
+En `/servicios`, el botón **Solicitar servicio** abre WhatsApp con el número registrado y un mensaje automático. El tipo de tarifa informa si es gratis, de pago, negociable, de intercambio/aporte o por definir; no sustituye la conversación directa para acordar condiciones.
 
 ### 9.13 ¿Cómo se registra un voluntario?
 1. La persona entra a `/ayudar` y envía el formulario eligiendo **Ofrecer tiempo o conocimientos**, con su nombre, teléfono, zona y detalle.

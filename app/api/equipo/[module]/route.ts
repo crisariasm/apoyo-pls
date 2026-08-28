@@ -4,6 +4,7 @@ import { canAccessModule, getPortalModule } from '../../../../lib/staff-portal-c
 import { InvalidRequestBodyError, checkRateLimit, getClientAddress, isPlainRecord, isSameOriginRequest, readJsonBody, RequestBodyTooLargeError } from '../../../../lib/input-security'
 import { getPortalOwnershipWhere, getStaffSession, ownsPortalRecord } from '../../../../lib/staff-portal-auth'
 import { sanitizePortalRecord, sanitizePortalRecords } from '../../../../lib/portal-response'
+import { serviceCoverageFromCity } from '../../../../lib/service-options'
 import { normalizePortalData, validatePortalData } from '../../../../lib/staff-portal-validation'
 import { isUUID } from '../../../../lib/uuid'
 
@@ -18,10 +19,25 @@ async function getAuthorizedModule(request: Request, context: RouteContext) {
   return { ...session, module: moduleDefinition }
 }
 
-function cleanData(module: NonNullable<ReturnType<typeof getPortalModule>>, body: Record<string, unknown>) {
+function cleanData(module: NonNullable<ReturnType<typeof getPortalModule>>, body: Record<string, unknown>, options?: { hydrateLegacyService?: boolean }) {
   const allowed = new Set(module.fields.map((field) => field.name))
   const rawData = Object.fromEntries(Object.entries(body).filter(([key]) => key !== 'id' && allowed.has(key)))
-  return normalizePortalData(module, rawData)
+  const data = normalizePortalData(module, rawData)
+
+  // Las altas antiguas podían enviar únicamente `location` y no conocían
+  // coverage. Solo hidratamos en POST: en un PATCH parcial no debemos
+  // reemplazar la cobertura existente por la cobertura predeterminada.
+  if (options?.hydrateLegacyService && module.slug === 'servicios') {
+    const currentCity = typeof data.city === 'string' && data.city.trim() ? data.city.trim() : ''
+    const firstCoverage = Array.isArray(data.coverage) && data.coverage[0] && typeof data.coverage[0] === 'object'
+      ? data.coverage[0] as { city?: unknown }
+      : null
+    const city = currentCity || (typeof firstCoverage?.city === 'string' ? firstCoverage.city : '') || 'Pereira'
+    data.city = city
+    if (!Array.isArray(data.coverage) || data.coverage.length === 0) data.coverage = serviceCoverageFromCity(city)
+  }
+
+  return data
 }
 
 const DEFAULT_PAGE_SIZE = 8
@@ -54,6 +70,56 @@ export async function GET(request: Request, context: RouteContext) {
   const authorized = await getAuthorizedModule(request, context)
   if (!authorized) return NextResponse.json({ message: 'No tienes acceso a este módulo.' }, { status: 403 })
   const url = new URL(request.url)
+  if (authorized.module.slug === 'servicios' && url.searchParams.get('review') === 'pending') {
+    try {
+      const result = await authorized.payload.find({
+        collection: 'services',
+        depth: 1,
+        pagination: false,
+        sort: '-createdAt',
+        where: { and: [{ submissionSource: { equals: 'public-offer' } }, { status: { equals: 'borrador' } }] },
+        overrideAccess: true,
+        user: authorized.user,
+      })
+      const docs = result.docs.map((doc) => {
+        const record = doc as unknown as Record<string, unknown>
+        return {
+          id: record.id,
+          title: record.title,
+          description: record.description,
+          vision: record.vision,
+          category: record.category,
+          provider: record.provider,
+          providerEmail: record.providerEmail,
+          city: record.city,
+          coverage: record.coverage,
+          serviceMode: record.serviceMode,
+          location: record.location,
+          availability: record.availability,
+          pricingType: record.pricingType,
+          price: record.price,
+          image: (() => {
+            const image = record.image
+            const imageId = image && typeof image === 'object' ? (image as { id?: unknown }).id : image
+            return imageId ? `/api/media/${encodeURIComponent(String(imageId))}` : ''
+          })(),
+          whatsappCountryCode: record.whatsappCountryCode,
+          whatsappNumber: record.whatsappNumber,
+          submissionSource: record.submissionSource,
+          status: record.status,
+          publicVisible: record.publicVisible,
+          featured: record.featured,
+          publishedAt: record.publishedAt,
+          registeredBy: record.registeredBy,
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
+        }
+      })
+      return NextResponse.json({ docs, totalDocs: docs.length })
+    } catch {
+      return NextResponse.json({ message: 'No fue posible consultar las ofertas de servicios.' }, { status: 500 })
+    }
+  }
   if (authorized.module.slug === 'administracion' && url.searchParams.get('summary') === 'pending') {
     try {
       const result = await authorized.payload.find({ collection: authorized.module.collection, where: { status: { equals: 'pendiente' } }, limit: 1, page: 1, sort: '-createdAt', overrideAccess: true, user: authorized.user })
@@ -95,7 +161,7 @@ export async function POST(request: Request, context: RouteContext) {
   } catch (error) {
     return bodyError(error)
   }
-  const data = cleanData(authorized.module, body)
+  const data = cleanData(authorized.module, body, { hydrateLegacyService: true })
   const validationError = validatePortalData(authorized.module, data)
   if (validationError) return NextResponse.json({ message: validationError }, { status: 400 })
   try {
@@ -130,6 +196,11 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
   if (!ownsPortalRecord(authorized.user, existing, authorized.module.slug)) return NextResponse.json({ message: 'No tienes permiso para modificar este registro.' }, { status: 403 })
   const data = cleanData(authorized.module, body)
+  if (authorized.module.slug === 'servicios' && (data.coverage === undefined || (Array.isArray(data.coverage) && data.coverage.length === 0))) {
+    const storedCoverage = Array.isArray(existing.coverage) && existing.coverage.length > 0 ? existing.coverage : null
+    const storedCity = typeof existing.city === 'string' && existing.city.trim() ? existing.city.trim() : 'Pereira'
+    data.coverage = storedCoverage || serviceCoverageFromCity(storedCity)
+  }
   const validationError = validatePortalData(authorized.module, data, { partial: true })
   if (validationError) return NextResponse.json({ message: validationError }, { status: 400 })
   if (authorized.module.slug === 'administracion' && existing.status !== 'pendiente' && data.status === 'pendiente') {

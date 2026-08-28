@@ -935,3 +935,62 @@
   .staff-portal textarea,
   .staff-login-page textarea { font-size: 16px !important; }
 }
+
+/* Bandeja de propuestas públicas de servicios. */
+.service-review-card { display: grid; gap: 18px; margin-bottom: 24px; padding: 22px; border: 1px solid #cbded0; border-radius: 17px; background: linear-gradient(135deg, #e5f1e4, #f7fbf4); box-shadow: 0 12px 30px rgba(30, 78, 53, .06); }
+.service-review-card-copy { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.service-review-card h2 { margin: 8px 0 6px; color: var(--staff-ink); font: 600 23px/1.05 'Space Grotesk', sans-serif; letter-spacing: -.8px; }
+.service-review-card p { max-width: 680px; margin: 0; color: var(--staff-muted); font-size: 12px; line-height: 1.5; }
+.service-review-count { display: grid; width: 48px; height: 48px; flex: 0 0 auto; place-items: center; border-radius: 15px; background: var(--staff-green); color: #fff; font: 700 20px 'Space Grotesk', sans-serif; }
+.service-review-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-top: 16px; border-top: 1px solid #cbded0; color: #678074; font: 500 10px 'DM Mono', monospace; }
+.service-review-card-actions .staff-primary-button { display: inline-flex; align-items: center; gap: 12px; width: auto; min-height: 40px; padding: 10px 14px; }
+.service-review-card-actions .staff-primary-button strong { font-size: 16px; }
+.service-review-backdrop { z-index: 70; }
+.service-review-modal { display: flex; width: min(100%, 1000px); height: min(850px, calc(100svh - 38px)); max-height: calc(100svh - 38px); flex-direction: column; overflow: hidden; box-sizing: border-box; padding: 25px; border: 1px solid #d0e0d2; border-radius: 19px; background: var(--staff-paper); box-shadow: 0 28px 75px rgba(24, 65, 47, .28); }
+.service-review-modal-layout { display: grid; min-height: 0; flex: 1 1 auto; grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr); gap: 20px; min-width: 0; margin-top: 20px; overflow: hidden; }
+.service-review-list { display: grid; min-height: 0; align-content: start; gap: 8px; overflow-y: auto; overflow-x: hidden; padding: 0 5px 4px 0; overscroll-behavior: contain; scrollbar-color: #b4d0ba transparent; scrollbar-width: thin; }
+.service-review-list-item { display: grid; grid-template-columns: 28px minmax(0, 1fr) 15px; align-items: center; gap: 9px; width: 100%; padding: 11px; border: 1px solid #dbe7dc; border-radius: 12px; background: #f6faf4; color: var(--staff-ink); text-align: left; }
+.service-review-list-item:hover, .service-review-list-item.is-active { border-color: #78a887; background: #e7f2e5; box-shadow: 0 7px 16px rgba(42, 95, 67, .08); }
+.service-review-list-item > span:nth-child(2) { display: grid; min-width: 0; gap: 4px; }
+.service-review-list-item strong { overflow: hidden; font: 650 12px/1.2 'Space Grotesk', sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.service-review-list-item small { overflow: hidden; color: var(--staff-muted); font: 500 9px/1.35 'DM Mono', monospace; text-overflow: ellipsis; white-space: nowrap; }
+.service-review-list-item > span:last-child { color: var(--staff-green); font-size: 16px; }
+.service-review-list-icon { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 9px; background: #f7dfce; color: #a76749; font-size: 14px; }
+.service-review-list-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.service-review-detail { display: block; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2px 5px 8px 0; overscroll-behavior: contain; scrollbar-color: #b4d0ba transparent; scrollbar-width: thin; }
+.service-review-detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; padding-bottom: 14px; border-bottom: 1px solid #e2eae2; }
+.service-review-origin { display: inline-flex; padding: 5px 8px; border-radius: 99px; background: #f7dfce; color: #a36245; font: 600 9px 'DM Mono', monospace; text-transform: uppercase; }
+.service-review-detail h3 { margin: 10px 0 4px; color: var(--staff-ink); font: 600 24px/1.04 'Space Grotesk', sans-serif; letter-spacing: -.8px; }
+.service-review-detail-heading p { margin: 0; color: var(--staff-muted); font: 500 10px 'DM Mono', monospace; }
+.service-review-collapse { display: none; flex: 0 0 auto; padding: 7px 9px; border: 1px solid #cfe0d2; border-radius: 8px; background: #f5faf3; color: #39745b; cursor: pointer; font: 700 10px 'DM Sans', sans-serif; }
+.service-review-image { display: grid; gap: 7px; margin: 15px 0 0; padding: 10px; border: 1px solid #d8e6d9; border-radius: 11px; background: #f4f9f2; }
+.service-review-image span { color: #82958a; font: 600 9px 'DM Mono', monospace; text-transform: uppercase; }
+.service-review-image img { display: block; width: 100%; height: 290px; max-height: none; border-radius: 8px; object-fit: contain; background: #e6eee5; }
+.service-review-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; padding: 17px 0; }
+.service-review-detail-grid > div { display: grid; align-content: start; gap: 4px; min-width: 0; }
+.service-review-detail-grid small { color: #87988d; font: 500 9px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .35px; }
+.service-review-detail-grid strong, .service-review-detail-grid p { margin: 0; color: #476255; font: 600 11px/1.4 'DM Sans', sans-serif; overflow-wrap: anywhere; }
+.service-review-detail-grid p { font-weight: 500; white-space: pre-wrap; }
+.service-review-detail-wide { grid-column: 1 / -1; }
+.service-review-publish-box { display: grid; gap: 10px; padding: 15px; border: 1px solid #d8e7d9; border-radius: 13px; background: #f1f7ef; }
+.service-review-publish-box h4 { margin: 5px 0 0; color: var(--staff-ink); font: 600 16px 'Space Grotesk', sans-serif; }
+.service-review-publish-box .staff-field { margin-top: 3px; }
+.service-review-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.service-review-actions .staff-primary-button, .service-review-actions .staff-outline-button { width: auto; }
+.service-review-delete { color: #a85d4b; border-color: #e0b4a4; }
+@media (max-width: 760px) {
+  .service-review-card { padding: 17px; }
+  .service-review-card-actions { align-items: stretch; flex-direction: column; }
+  .service-review-card-actions .staff-primary-button { width: 100%; justify-content: center; }
+  .service-review-modal { height: calc(100svh - 24px); max-height: calc(100svh - 24px); padding: 19px 15px; border-radius: 16px; }
+  .service-review-modal-layout { display: flex; flex-direction: column; gap: 15px; overflow-y: auto; overflow-x: hidden; }
+  .service-review-list { flex: 0 0 auto; max-height: none; overflow: visible; padding-right: 0; }
+  .service-review-list-item { min-height: 52px; }
+  .service-review-detail { flex: 0 0 auto; width: 100%; max-height: min(68svh, 620px); overflow-y: auto; overflow-x: hidden; padding: 15px 2px 8px 0; border-top: 1px solid #dbe7dc; }
+  .service-review-collapse { display: inline-flex; align-items: center; gap: 5px; }
+  .service-review-detail-grid { grid-template-columns: 1fr; }
+  .service-review-detail-wide { grid-column: auto; }
+  .service-review-image img { height: 230px; }
+  .service-review-actions { flex-direction: column; }
+  .service-review-actions .staff-primary-button, .service-review-actions .staff-outline-button { width: 100%; }
+}

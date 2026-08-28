@@ -13,6 +13,8 @@ type Service = {
   image: string
   provider: string
   city?: string
+  cities?: string[]
+  coverage?: Array<{ departmentCode: string; department: string; city: string }>
   serviceMode?: string
   serviceModeLabel?: string
   location: string
@@ -116,7 +118,10 @@ function pricingLabel(service: Service) {
 function displayPrice(service: Service, pricingType: string) {
   if (pricingType === 'gratis') return 'Sin costo'
   if (normalize(service.price).includes('se necesita')) return 'Por confirmar'
-  return service.price || pricingLabel(service)
+  if (service.price) return service.price
+  if (pricingType === 'pagado' || pricingType === 'negociable') return 'Consultar por WhatsApp'
+  if (pricingType === 'intercambio') return 'Acordar por WhatsApp'
+  return pricingLabel(service)
 }
 
 function displayTypeLabel(service: Service) {
@@ -130,6 +135,17 @@ function cityLabel(service: Service) {
   return service.city || (normalize(service.location).includes('remoto') ? 'Remoto / toda Colombia' : 'Pereira')
 }
 
+function serviceCities(service: Service) {
+  const cities = Array.isArray(service.cities) ? service.cities.filter(Boolean) : []
+  return cities.length ? cities : [cityLabel(service)]
+}
+
+function citySummary(service: Service) {
+  const cities = serviceCities(service)
+  if (cities.length <= 1) return cities[0]
+  return `${cities[0]} +${cities.length - 1} más`
+}
+
 export function ServiceBrowser({ services }: { services: Service[] }) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('todos')
@@ -137,18 +153,18 @@ export function ServiceBrowser({ services }: { services: Service[] }) {
   const [pricingType, setPricingType] = useState('todos')
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
 
-  const cities = useMemo(() => ['todas', ...Array.from(new Set(services.map(cityLabel))).sort((a, b) => a.localeCompare(b, 'es'))], [services])
+  const cities = useMemo(() => ['todas', ...Array.from(new Set(services.flatMap(serviceCities))).sort((a, b) => a.localeCompare(b, 'es'))], [services])
   const categoryCounts = useMemo(() => new Map(categoryGroups.map((group) => [group.key, services.filter((service) => categoryGroupFor(service.category) === group.key).length])), [services])
   const freeCount = services.filter((service) => inferredPricingType(service) === 'gratis').length
-  const cityCount = new Set(services.map(cityLabel)).size
+  const cityCount = new Set(services.flatMap(serviceCities)).size
 
   const filteredServices = useMemo(() => {
     const normalizedQuery = normalize(query.trim())
     return services.filter((service) => {
-      const serviceCity = cityLabel(service)
+      const serviceCityOptions = serviceCities(service)
       const servicePricingType = inferredPricingType(service)
       const matchesCategory = category === 'todos' || categoryGroupFor(service.category) === category
-      const matchesCity = city === 'todas' || serviceCity === city
+      const matchesCity = city === 'todas' || serviceCityOptions.includes(city)
       const matchesPricing = pricingType === 'todos' || servicePricingType === pricingType
       const searchable = normalize(`${service.title} ${service.description} ${service.provider} ${service.location} ${service.city || ''} ${service.category}`)
       return matchesCategory && matchesCity && matchesPricing && (!normalizedQuery || searchable.includes(normalizedQuery))
@@ -216,7 +232,7 @@ export function ServiceBrowser({ services }: { services: Service[] }) {
 
       <div className="service-grid">
         {filteredServices.map((service) => {
-          const currentCity = cityLabel(service)
+          const currentCity = citySummary(service)
           const currentMode = modeLabel(service)
           const currentPricingType = inferredPricingType(service)
           const currentPrice = displayPrice(service, currentPricingType)

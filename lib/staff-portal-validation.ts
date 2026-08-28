@@ -1,4 +1,5 @@
 import type { PortalModule, PortalField } from './staff-portal-config'
+import { normalizeServiceCoverage } from './service-options'
 import { isUUID } from './uuid'
 import { isValidWhatsAppNumber } from './whatsapp'
 
@@ -6,6 +7,7 @@ type FormData = Record<string, unknown>
 
 const defaultMaxLengths: Partial<Record<PortalField['type'], number>> = {
   text: 160,
+  email: 254,
   textarea: 5000,
   select: 80,
   date: 40,
@@ -30,7 +32,8 @@ function isUploadValue(value: unknown) {
 
 function normalizeFieldValue(field: PortalField, value: unknown) {
   if (field.type === 'number' && value !== '' && value !== undefined && value !== null) return Number(value)
-  if (field.type === 'text' || field.type === 'textarea') return typeof value === 'string' ? value.trim() : value
+  if (field.type === 'text' || field.type === 'email' || field.type === 'textarea') return typeof value === 'string' ? value.trim() : value
+  if (field.type === 'coverage') return normalizeServiceCoverage(value)
   return value
 }
 
@@ -52,12 +55,17 @@ export function validatePortalData(module: PortalModule, data: FormData, options
   const errors: string[] = []
 
   for (const field of module.fields) {
+    if (field.type === 'coverage' && field.required && data[field.name] !== undefined && (!Array.isArray(data[field.name]) || normalizeServiceCoverage(data[field.name]).length === 0)) errors.push(`Completa: ${field.label}.`)
     const value = data[field.name]
-    if (!partial && field.required && isBlank(value)) errors.push(`Completa: ${field.label}.`)
+    // Los registros históricos pueden llegar sin cobertura; el formulario nuevo
+    // la exige mediante formIsComplete y el servidor la completa desde la ciudad
+    // principal cuando es necesario conservar compatibilidad.
+    if (!partial && field.required && field.type !== 'coverage' && isBlank(value)) errors.push(`Completa: ${field.label}.`)
     if (typeof value === 'string') {
       const maxLength = getPortalFieldMaxLength(field)
       if (maxLength !== undefined && value.length > maxLength) errors.push(`${field.label} no puede superar ${maxLength} caracteres.`)
     }
+    if (field.type === 'email' && !isBlank(value) && (typeof value !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))) errors.push(`${field.label} debe tener un formato válido.`)
     if (field.type === 'number' && !isBlank(value)) {
       const numberValue = Number(value)
       if (!Number.isFinite(numberValue)) errors.push(`${field.label} debe ser un número válido.`)

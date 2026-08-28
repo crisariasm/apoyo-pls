@@ -80,6 +80,8 @@ test('valida reglas cruzadas de necesidades, evidencias y publicaciones', () => 
 test('valida el WhatsApp de un servicio antes de enviarlo al servidor', () => {
   const services = getPortalModule('servicios')!
   assert.equal(validatePortalData(services, { whatsappCountryCode: '+57', whatsappNumber: '300 123 4567' }, { partial: true }), null)
+  assert.equal(validatePortalData(services, { providerEmail: 'persona@ejemplo.co' }, { partial: true }), null)
+  assert.match(validatePortalData(services, { providerEmail: 'correo-invalido' }, { partial: true }) || '', /Correo de contacto debe tener un formato válido/)
   assert.match(validatePortalData(services, {
     title: 'Servicio', description: 'Descripción', type: 'gratuito', category: 'Apoyo', provider: 'Comunidad', location: 'Pereira',
     status: 'borrador', publicVisible: false, whatsappCountryCode: '+57',

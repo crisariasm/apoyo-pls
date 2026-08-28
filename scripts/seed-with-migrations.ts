@@ -5,6 +5,7 @@ import { getPayload } from 'payload'
 
 import type { StaffRole } from '../lib/access'
 import config from '../payload.config'
+import { serviceCoverageFromCity } from '../lib/service-options'
 
 if (process.env.NODE_ENV === 'production') {
   throw new Error('El seeder de desarrollo no puede ejecutarse en producción.')
@@ -17,7 +18,7 @@ if (!process.env.DATABASE_URL) {
 const run = (command: string, args: string[]) =>
   new Promise<void>((resolve, reject) => {
     const child = spawn(command, args, {
-      env: process.env,
+      env: { ...process.env, PAYLOAD_MIGRATIONS: 'true' },
       stdio: 'inherit',
     })
 
@@ -359,6 +360,7 @@ const services = seedServices.map((service, index) => ({
   category: service.category,
   provider: service.provider,
   city: service.city,
+  coverage: serviceCoverageFromCity(service.city),
   serviceMode: service.serviceMode,
   location: service.location,
   availability: service.availability,

@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import { unstable_noStore as noStore } from 'next/cache'
 
 import config from '../payload.config'
+import { coverageCities, normalizeServiceCoverage, serviceCoverageFromCity, type ServiceCoverage } from './service-options'
 import { buildWhatsAppUrl } from './whatsapp'
 
 const hasDatabase = Boolean(process.env.DATABASE_URL)
@@ -16,7 +17,7 @@ export type PublicDistribution = { id: string; resource: string; quantity: strin
 export type PublicEvidence = { id: string; image: string; title: string; description: string; source: string; distributionId: string }
 export type PublicActivity = { id: string; title: string; date: string; time: string; location: string; spots: string; featured: boolean }
 export type PublicNotice = { id: string; category: string; title: string; body: string; image: string; location: string; time: string; contact: string; featured: boolean }
-export type PublicService = { id: string; type: string; typeLabel: string; category: string; title: string; description: string; image: string; provider: string; city: string; serviceMode: string; serviceModeLabel: string; location: string; availability: string; pricingType: string; pricingLabel: string; price: string; whatsappUrl: string; featured: boolean }
+export type PublicService = { id: string; type: string; typeLabel: string; category: string; title: string; description: string; image: string; provider: string; city: string; coverage: ServiceCoverage[]; cities: string[]; serviceMode: string; serviceModeLabel: string; location: string; availability: string; pricingType: string; pricingLabel: string; price: string; whatsappUrl: string; featured: boolean }
 export type PublicBulletin = { id: string; category: string; title: string; summary: string; body: string; date: string; author: string; featured: boolean }
 
 export type PublicOverview = {
@@ -135,6 +136,12 @@ function serviceCity(value: unknown, location: unknown) {
   return current || 'Pereira'
 }
 
+function serviceCoverage(value: unknown, city: string) {
+  const current = normalizeServiceCoverage(value)
+  if (current.length) return current
+  return serviceCoverageFromCity(city)
+}
+
 function intakeStatusLabel(value: unknown) {
   const labels: Record<string, string> = { recibida: 'Recibida', 'en-clasificacion': 'En clasificación', incorporada: 'Incorporada al inventario', 'no-apta': 'No apta' }
   return labels[text(value)] || text(value, 'Recibida')
@@ -218,7 +225,7 @@ export async function getOverview(options: { sections?: readonly PublicOverviewS
       wants('evidences') ? safeFind({ collection: 'distribution-evidence', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-publishedAt', '-createdAt'] }) : Promise.resolve([]),
       wants('activities') ? safeFind({ collection: 'volunteer-activities', depth: 0, where: { and: [{ status: { equals: 'abierta' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', 'date', '-createdAt'] }) : Promise.resolve([]),
       wants('communityNotices') ? safeFind({ collection: 'community-notices', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }, { category: { not_equals: 'mascota-perdida' } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }) : Promise.resolve([]),
-      wants('services') ? safeFind({ collection: 'services', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-publishedAt', '-createdAt'] }) : Promise.resolve([]),
+      wants('services') ? safeFind({ collection: 'services', depth: 1, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }) : Promise.resolve([]),
       wants('bulletins') ? safeFind({ collection: 'bulletins', depth: 0, where: { and: [{ status: { equals: 'publicado' } }, { publicVisible: { equals: true } }] }, limit: publicLimit, sort: ['-featured', '-publishedAt', '-createdAt'] }) : Promise.resolve([]),
       safeFindGlobal(),
     ])
@@ -286,7 +293,10 @@ export async function getOverview(options: { sections?: readonly PublicOverviewS
         const currentPricingType = servicePricingType(service.pricingType, type, service.price)
         const currentMode = serviceMode(service.serviceMode, location)
         const currentPrice = text(service.price, currentPricingType === 'gratis' ? 'Sin costo' : 'Consultar')
-        return { id: text(service.id, crypto.randomUUID()), type, typeLabel: serviceTypeLabel(type), category: text(service.category, 'General'), title: text(service.title, 'Servicio comunitario'), description: text(service.description, 'Información del servicio disponible.'), image: mediaUrl(service.image, '/hero-PLs-al-llamado.png'), provider: text(service.provider, 'Comunidad'), city: serviceCity(service.city, location), serviceMode: currentMode, serviceModeLabel: serviceModeLabel(currentMode), location, availability: text(service.availability, 'Consulta disponibilidad'), pricingType: currentPricingType, pricingLabel: servicePricingLabel(currentPricingType), price: currentPrice, whatsappUrl: buildWhatsAppUrl(service.whatsappCountryCode, service.whatsappNumber, text(service.title, 'servicio comunitario')), featured: service.featured === true }
+        const primaryCity = serviceCity(service.city, location)
+        const currentCoverage = serviceCoverage(service.coverage, primaryCity)
+        const currentCities = coverageCities(currentCoverage, primaryCity)
+        return { id: text(service.id, crypto.randomUUID()), type, typeLabel: serviceTypeLabel(type), category: text(service.category, 'General'), title: text(service.title, 'Servicio comunitario'), description: text(service.description, 'Información del servicio disponible.'), image: mediaUrl(service.image, '/hero-PLs-al-llamado.png'), provider: text(service.provider, 'Comunidad'), city: currentCities[0] || primaryCity, coverage: currentCoverage, cities: currentCities, serviceMode: currentMode, serviceModeLabel: serviceModeLabel(currentMode), location, availability: text(service.availability, 'Consulta disponibilidad'), pricingType: currentPricingType, pricingLabel: servicePricingLabel(currentPricingType), price: currentPrice, whatsappUrl: buildWhatsAppUrl(service.whatsappCountryCode, service.whatsappNumber, text(service.title, 'servicio comunitario')), featured: service.featured === true }
       }),
       bulletins: bulletinDocs.map((bulletin) => ({ id: text(bulletin.id, crypto.randomUUID()), category: text(bulletin.category, 'Actualización'), title: text(bulletin.title, 'Boletín del centro'), summary: text(bulletin.summary, 'Actualización de la operación comunitaria.'), body: text(bulletin.body, 'Consulta los avances del centro de acopio.'), date: dateLabel(bulletin.publishedAt, 'Por confirmar'), author: text(bulletin.author, 'Equipo del centro'), featured: bulletin.featured === true })),
       metrics: { received: metricLabel(receivedTotal), available: metricLabel(availableTotal), distributed: metricLabel(distributedTotal), volunteers: metricLabel(activityDocs.length) },

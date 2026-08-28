@@ -1,4 +1,5 @@
 import { ServiceBrowser } from '../../components/service-browser'
+import { ServiceOfferModal } from '../../components/service-offer-modal'
 import { SiteFooter } from '../../components/site-footer'
 import { SiteHeader } from '../../components/site-header'
 import { getOverview } from '../../../lib/public-api'
@@ -23,7 +24,7 @@ export default async function ServicesPage() {
             <div className="services-hero-eyebrow"><span className="pulse-dot" />DIRECTORIO DE SERVICIOS · COLOMBIA</div>
             <h1>Trabajo, talento y apoyo <em>cerca de ti.</em></h1>
             <p>Encuentra personas, equipos y oficios que pueden ayudarte. También puedes ofrecer lo que sabes hacer para que llegue a quien lo necesita.</p>
-            <div className="services-hero-actions"><a className="button button-primary" href="#directorio-servicios">Explorar servicios <span aria-hidden="true">↓</span></a><a className="button button-ghost" href="/ayudar#formulario-ayuda">Quiero ofrecer un servicio <span aria-hidden="true">↗</span></a></div>
+            <div className="services-hero-actions"><a className="button button-primary" href="#directorio-servicios">Explorar servicios <span aria-hidden="true">↓</span></a><ServiceOfferModal>Quiero ofrecer un servicio <span aria-hidden="true">↗</span></ServiceOfferModal></div>
             <div className="services-hero-stats" aria-label="Resumen del directorio">
               <div><strong>{serviceAreas}</strong><span>áreas de servicio</span></div>
               <div><strong>{freeServices}</strong><span>opciones gratuitas</span></div>
@@ -46,7 +47,7 @@ export default async function ServicesPage() {
         <div className="section-heading"><div><div className="section-kicker green-text">Directorio comunitario</div><h2>Una ayuda también puede ser un servicio.</h2><p>Filtra por categoría, ciudad o tarifa para encontrar una opción que sí te sirva.</p></div><span className="status-summary">{services.length} publicados</span></div>
         <div id="categorias-servicios"><ServiceBrowser services={services} /></div>
       </section>
-      <section className="services-publish-band page-section"><div><span className="section-kicker orange-text">Para quienes ofrecen</span><h2>Tu trabajo también puede abrir una puerta.</h2><p>Comparte tu oficio, conocimiento o tiempo con una descripción clara, ciudad, modalidad y condición visible. Así las personas pueden encontrarte sin dar vueltas.</p></div><a className="button button-dark" href="/ayudar#formulario-ayuda">Quiero ofrecer mi ayuda <span aria-hidden="true">↗</span></a></section>
+      <section className="services-publish-band page-section"><div><span className="section-kicker orange-text">Para quienes ofrecen</span><h2>Tu trabajo también puede abrir una puerta.</h2><p>Comparte tu oficio, conocimiento o tiempo con una descripción clara, ciudad, modalidad y condición visible. Así las personas pueden encontrarte sin dar vueltas.</p></div><ServiceOfferModal className="button button-dark">Quiero ofrecer mi ayuda <span aria-hidden="true">↗</span></ServiceOfferModal></section>
       <SiteFooter />
     </main>
   )

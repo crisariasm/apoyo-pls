@@ -164,11 +164,18 @@ El archivo [.env.example](./.env.example) contiene la plantilla completa.
 | `DATABASE_URL` | Sí | Conexión a PostgreSQL |
 | `PAYLOAD_SECRET` | Sí en producción | Firma de sesiones y secretos internos |
 | `NEXT_PUBLIC_SERVER_URL` | Sí | URL permitida para CORS, CSRF y enlaces públicos |
+| `NEXT_PUBLIC_GA_ID` | No | Identificador público de medición de Google Analytics 4; activa la analítica del sitio cuando tiene formato `G-...` |
 | `PG_POOL_MAX` | No | Máximo de conexiones simultáneas; por defecto `10` |
 | `PG_CONNECTION_TIMEOUT_MS` | No | Tiempo máximo para abrir una conexión; por defecto `5000` ms |
 | `PG_IDLE_TIMEOUT_MS` | No | Tiempo para cerrar conexiones inactivas; por defecto `30000` ms |
 
 En producción, `PAYLOAD_SECRET` debe tener al menos 32 caracteres.
+
+### Google Analytics 4
+
+La analítica se carga desde `app/(site)/layout.tsx` con `next/script` después de que la página es interactiva. Solo se activa cuando `NEXT_PUBLIC_GA_ID` tiene un identificador GA4 válido, por ejemplo `G-0F8LLFJE7K`; un valor vacío o inválido no inyecta scripts ni afecta el sitio.
+
+En el proveedor de despliegue configura `NEXT_PUBLIC_GA_ID=G-0F8LLFJE7K` en el entorno de producción y vuelve a construir la aplicación. Al ser una variable `NEXT_PUBLIC_*`, su valor forma parte del JavaScript público y no debe contener secretos.
 
 ### Usuarios creados por el seeder
 

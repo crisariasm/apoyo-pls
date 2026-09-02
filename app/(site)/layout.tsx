@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import '../globals.css'
 
 import { LiveRefresh } from '../components/live-refresh'
@@ -23,6 +24,27 @@ export const metadata: Metadata = {
   },
 }
 
+const configuredGaId = process.env.NEXT_PUBLIC_GA_ID?.trim() || ''
+const gaId = /^G-[A-Z0-9]+$/i.test(configuredGaId) ? configuredGaId : null
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es"><body><LiveRefresh />{children}</body></html>
+  return (
+    <html lang="es">
+      <body>
+        <LiveRefresh />
+        {children}
+        {gaId && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`} strategy="afterInteractive" />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){window.dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${gaId}');`}
+            </Script>
+          </>
+        )}
+      </body>
+    </html>
+  )
 }

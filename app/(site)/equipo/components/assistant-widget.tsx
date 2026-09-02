@@ -89,7 +89,13 @@ export function AssistantWidget({ name }: { name: string }) {
   }, [messages, loading, open])
 
   useEffect(() => {
-    if (open) inputRef.current?.focus()
+    if (!open) return
+    const frame = window.requestAnimationFrame(() => {
+      const input = inputRef.current
+      input?.focus({ preventScroll: true })
+      input?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [open])
 
   useEffect(() => {

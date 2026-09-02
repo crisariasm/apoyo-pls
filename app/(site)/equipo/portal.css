@@ -316,6 +316,8 @@
 
 .staff-section-heading,
 .staff-card-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.staff-section-heading > *,
+.staff-card-heading > * { min-width: 0; }
 .staff-section-heading { margin-bottom: 16px; }
 .staff-section-heading h2,
 .staff-card-heading h2 { margin: 5px 0 0; color: var(--staff-ink); font-size: clamp(22px, 2vw, 29px); letter-spacing: -.045em; }
@@ -363,7 +365,7 @@
 .staff-legend span:nth-child(3) i { background: #d9e7df; }
 
 .staff-module-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
-.staff-module-card { position: relative; display: flex; min-height: 184px; flex-direction: column; overflow: hidden; padding: 20px; border: 1px solid var(--staff-line); border-radius: 15px; background: var(--staff-paper); color: var(--staff-ink); text-decoration: none; box-shadow: 0 10px 25px rgba(39, 85, 61, .04); transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.staff-module-card { position: relative; display: flex; width: 100%; min-width: 0; min-height: 184px; box-sizing: border-box; flex-direction: column; overflow: hidden; padding: 20px; border: 1px solid var(--staff-line); border-radius: 15px; background: var(--staff-paper); color: var(--staff-ink); text-decoration: none; box-shadow: 0 10px 25px rgba(39, 85, 61, .04); transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
 .staff-module-card::before { position: absolute; inset: 0 0 auto; height: 4px; background: var(--staff-green); content: ''; }
 .staff-module-card:nth-child(2n)::before { background: var(--staff-teal); }
 .staff-module-card:nth-child(3n)::before { background: var(--staff-orange); }
@@ -419,9 +421,9 @@
 
 .staff-record-list { display: grid; min-width: 0; flex: 1 1 auto; min-height: 0; align-content: start; gap: 10px; overflow-x: hidden; overflow-y: auto; padding: 2px 4px 2px 1px; scrollbar-color: #b4d0ba transparent; scrollbar-width: thin; }
 .staff-record-list.is-loading { opacity: .55; pointer-events: none; }
-.staff-record-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 15px; border: 1px solid #e0eae1; border-radius: 11px; background: #fbfcf8; }
+.staff-record-item { display: flex; width: 100%; min-width: 0; box-sizing: border-box; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 15px; border: 1px solid #e0eae1; border-radius: 11px; background: #fbfcf8; }
 .staff-record-copy { min-width: 0; }
-.staff-record-copy h3 { margin: 0; overflow: hidden; color: #21483f; font-size: 14px; letter-spacing: -.015em; text-overflow: ellipsis; white-space: nowrap; }
+.staff-record-copy h3 { margin: 0; overflow: hidden; color: #21483f; font-size: 14px; letter-spacing: -.015em; overflow-wrap: anywhere; text-overflow: ellipsis; white-space: nowrap; }
 .staff-record-meta { display: flex; min-width: 0; max-width: 100%; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .staff-record-meta span { box-sizing: border-box; max-width: 100%; padding: 4px 7px; border-radius: 999px; background: #eaf2e7; color: #61766a; font-size: 10px; overflow-wrap: anywhere; white-space: normal; }
 .staff-record-meta span.staff-record-status { background: #dceee0; color: #286f4e; font-weight: 750; }
@@ -472,15 +474,15 @@
 .staff-request-saved { display: flex; flex-direction: column; }
 .staff-request-count { display: grid; min-width: 32px; height: 32px; place-items: center; border-radius: 50%; background: #e5f0e5; color: #2d7656; font-size: 13px; font-weight: 800; }
 .staff-request-list { display: grid; align-content: start; flex: 1 1 auto; gap: 10px; min-height: 0; margin-top: 15px; overflow-y: auto; padding: 2px 4px 2px 1px; scrollbar-color: #b4d0ba transparent; scrollbar-width: thin; }
-.staff-request-item { display: grid; gap: 14px; padding: 15px; border: 1px solid #dfe9df; border-radius: 11px; background: #fbfcf8; }
+.staff-request-item { display: grid; width: 100%; min-width: 0; box-sizing: border-box; gap: 14px; padding: 15px; border: 1px solid #dfe9df; border-radius: 11px; background: #fbfcf8; }
 .staff-request-item.is-need-offer { border-color: #a9c9ec; background: #f5f9ff; }
 .staff-request-copy { min-width: 0; }
 .staff-request-item-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .staff-request-kind { display: block; margin-bottom: 5px; color: #bd6d5d; font-size: 9px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .staff-request-kind.is-need-offer { color: #2f6fb6; }
-.staff-request-item h3 { margin: 0; color: #21483f; font-size: 14px; letter-spacing: -.015em; }
-.staff-request-copy p { margin: 8px 0 0; color: #526b62; font-size: 11px; line-height: 1.45; }
-.staff-request-copy small { display: block; margin-top: 7px; color: #82958a; font-size: 10px; line-height: 1.4; }
+.staff-request-item h3 { margin: 0; color: #21483f; font-size: 14px; letter-spacing: -.015em; overflow-wrap: anywhere; }
+.staff-request-copy p { margin: 8px 0 0; color: #526b62; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; word-break: break-word; }
+.staff-request-copy small { display: block; margin-top: 7px; color: #82958a; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; word-break: break-word; }
 .staff-request-status { display: inline-flex; width: fit-content; flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: #e9f0e7; color: #5c7567; font-size: 9px; font-weight: 800; line-height: 1; }
 .staff-request-status.is-pendiente { background: #f9e8df; color: #a45d4e; }
 .staff-request-status.is-en-revision,
@@ -630,6 +632,8 @@
   .staff-record-list { min-height: 280px; }
   .staff-record-item { display: block; }
   .staff-record-copy { width: 100%; }
+  .staff-record-copy h3 { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; word-break: break-word; line-height: 1.25; }
+  .staff-record-meta { width: 100%; }
   .staff-record-actions { margin-top: 13px; }
   .staff-request-inbox,
   .staff-request-saved { min-height: 0; padding: 20px 17px; }
@@ -834,6 +838,7 @@
 .staff-assistant-history {
   display: grid;
   flex: 1 1 auto;
+  min-height: 0;
   align-content: start;
   gap: 9px;
   overflow-y: auto;
@@ -890,7 +895,7 @@
 .staff-assistant-error button { flex: 0 0 auto; padding: 6px 10px; border: 1px solid #d9a99c; border-radius: 8px; background: transparent; color: #934e43; cursor: pointer; font: inherit; font-size: 11px; font-weight: 750; }
 .staff-assistant-error button:hover { background: rgba(147, 78, 67, .1); }
 
-.staff-assistant-form { display: flex; align-items: flex-end; gap: 8px; padding: 11px 12px; border-top: 1px solid #e2ece3; background: var(--staff-paper); }
+.staff-assistant-form { display: flex; flex: 0 0 auto; align-items: flex-end; gap: 8px; padding: 11px 12px; border-top: 1px solid #e2ece3; background: var(--staff-paper); }
 .staff-assistant-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .staff-assistant-form textarea { min-height: 42px; max-height: 118px; box-sizing: border-box; flex: 1; padding: 12px; border: 1px solid #cfdfd0; border-radius: 11px; background: #fbfcf8; color: var(--staff-ink); font: inherit; font-size: 12px; line-height: 1.45; outline: none; resize: none; }
 .staff-assistant-form textarea:focus { border-color: #69a479; box-shadow: 0 0 0 3px rgba(105, 164, 121, .14); }
@@ -960,7 +965,7 @@
 .service-review-detail { display: block; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2px 5px 8px 0; overscroll-behavior: contain; scrollbar-color: #b4d0ba transparent; scrollbar-width: thin; }
 .service-review-detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; padding-bottom: 14px; border-bottom: 1px solid #e2eae2; }
 .service-review-origin { display: inline-flex; padding: 5px 8px; border-radius: 99px; background: #f7dfce; color: #a36245; font: 600 9px 'DM Mono', monospace; text-transform: uppercase; }
-.service-review-detail h3 { margin: 10px 0 4px; color: var(--staff-ink); font: 600 24px/1.04 'Space Grotesk', sans-serif; letter-spacing: -.8px; }
+.service-review-detail h3 { margin: 10px 0 4px; color: var(--staff-ink); font: 600 24px/1.04 'Space Grotesk', sans-serif; letter-spacing: -.8px; overflow-wrap: anywhere; word-break: break-word; }
 .service-review-detail-heading p { margin: 0; color: var(--staff-muted); font: 500 10px 'DM Mono', monospace; }
 .service-review-collapse { display: none; flex: 0 0 auto; padding: 7px 9px; border: 1px solid #cfe0d2; border-radius: 8px; background: #f5faf3; color: #39745b; cursor: pointer; font: 700 10px 'DM Sans', sans-serif; }
 .service-review-image { display: grid; gap: 7px; margin: 15px 0 0; padding: 10px; border: 1px solid #d8e6d9; border-radius: 11px; background: #f4f9f2; }
@@ -982,11 +987,11 @@
   .service-review-card { padding: 17px; }
   .service-review-card-actions { align-items: stretch; flex-direction: column; }
   .service-review-card-actions .staff-primary-button { width: 100%; justify-content: center; }
-  .service-review-modal { height: calc(100svh - 24px); max-height: calc(100svh - 24px); padding: 19px 15px; border-radius: 16px; }
-  .service-review-modal-layout { display: flex; flex-direction: column; gap: 15px; overflow-y: auto; overflow-x: hidden; }
+  .service-review-modal { height: calc(100svh - 24px); max-height: calc(100svh - 24px); overflow-x: hidden; overflow-y: auto; padding: 19px 15px 27px; border-radius: 16px; scroll-padding-bottom: 24px; }
+  .service-review-modal-layout { display: flex; flex: 0 0 auto; flex-direction: column; gap: 15px; min-height: 0; overflow: visible; }
   .service-review-list { flex: 0 0 auto; max-height: none; overflow: visible; padding-right: 0; }
   .service-review-list-item { min-height: 52px; }
-  .service-review-detail { flex: 0 0 auto; width: 100%; max-height: min(68svh, 620px); overflow-y: auto; overflow-x: hidden; padding: 15px 2px 8px 0; border-top: 1px solid #dbe7dc; }
+  .service-review-detail { flex: 0 0 auto; width: 100%; max-height: none; overflow: visible; padding: 15px 2px 8px 0; border-top: 1px solid #dbe7dc; }
   .service-review-collapse { display: inline-flex; align-items: center; gap: 5px; }
   .service-review-detail-grid { grid-template-columns: 1fr; }
   .service-review-detail-wide { grid-column: auto; }

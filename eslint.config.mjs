@@ -4,7 +4,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import tseslint from 'typescript-eslint'
 
 export default defineConfig([
-  globalIgnores(['.next/**', 'dist/**', 'out/**', 'node_modules/**', 'payload-types.ts', 'tests/**']),
+  globalIgnores(['.next/**', 'dist/**', 'out/**', 'node_modules/**', 'payload-types.ts', 'tests/**', 'public/three.module.min.js']),
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   next.flatConfig.coreWebVitals,

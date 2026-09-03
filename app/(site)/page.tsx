@@ -1,8 +1,7 @@
-import Image from 'next/image'
-
 import { SiteFooter } from '../components/site-footer'
 import { SiteHeader } from '../components/site-header'
 import { NeedOfferModal } from '../components/need-offer-modal'
+import { AnimatedCityQr } from '../components/animated-city-qr'
 import { getOverview } from '../../lib/public-api'
 import { pageMetadata } from '../../lib/site-metadata'
 
@@ -28,16 +27,14 @@ export default async function Home() {
           <div className="hero-actions">
             <a className="button button-primary" href="/ayudar#formulario-ayuda">Quiero ayudar</a>
             <a className="button button-ghost" href="/solicitar-apoyo#formulario-apoyo">Solicitar apoyo</a>
+            <a className="button button-services" href="/servicios"><span>Explora nuestro directorio pl</span><span aria-hidden="true">↗</span></a>
           </div>
           <div className="hero-meta">
             <div><strong>{center.address}</strong><small>Ubicación del centro</small></div>
             <div><strong>{center.hours}</strong><small>Horario de recepción</small></div>
           </div>
         </div>
-        <div className="hero-art">
-          <Image src="/hero-PLs-al-llamado.png" alt="Personas organizando donaciones en un centro de acopio de Pereira" fill priority sizes="(max-width: 900px) 100vw, 55vw" />
-          <div className="hero-art-caption">Actualizado: {center.lastUpdate}</div>
-        </div>
+        <AnimatedCityQr />
       </section>
 
       <section className="home-needs-section page-section" aria-labelledby="home-needs-title">

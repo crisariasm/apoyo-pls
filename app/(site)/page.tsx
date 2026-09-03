@@ -27,7 +27,7 @@ export default async function Home() {
           <div className="hero-actions">
             <a className="button button-primary" href="/ayudar#formulario-ayuda">Quiero ayudar</a>
             <a className="button button-ghost" href="/solicitar-apoyo#formulario-apoyo">Solicitar apoyo</a>
-            <a className="button button-services" href="/servicios"><span>Explora nuestro directorio pl</span><span aria-hidden="true">↗</span></a>
+            <a className="button button-services" href="/servicios"><span>Explora nuestro directorio PL</span><span aria-hidden="true">↗</span></a>
           </div>
           <div className="hero-meta">
             <div><strong>{center.address}</strong><small>Ubicación del centro</small></div>
